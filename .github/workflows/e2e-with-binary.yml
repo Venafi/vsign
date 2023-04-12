@@ -1,0 +1,52 @@
+name: e2e-with-binary
+# Run on every push, and allow it to be run manually.
+on:
+  workflow_dispatch:
+  push:
+    branches: ['main', 'release-*']
+  pull_request:
+
+jobs:
+  e2e-tests-with-binary:
+    # Skip if running in a fork that might not have secrets configured.
+    if: ${{ github.repository == 'venafi/vsign' }}
+    name: Run tests
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      VSIGN_URL: https://vh.venafilab.com
+      VSIGN_TOKEN: ${{secrets.VSIGN_TOKEN}}
+      VSIGN_PROJECT: vsign\rsa2048-cert
+      IMAGE: docker.io/zosocanuck/cert-manager-dashboard:0.1
+
+    steps:
+      - uses: actions/checkout@v3.1.0
+      - uses: actions/setup-go@v3.3.0
+        with:
+          go-version: '1.19'
+          check-latest: true
+      - name: Create sample payload file to sign
+        uses: DamianReeves/write-file-action@v1.0
+        with:
+          path: ${{ github.workspace }}/payload.txt
+          contents: |
+            this is a test
+      - name: build vsign and check
+        shell: bash
+        run: |
+          set -e
+          make vsign
+          ./vsign sign --payload test/payload.txt --output-signature output.sig --mechanism 64
+          if [ -s output.sig ]
+          then
+            exit 0
+          else
+            echo "file does not exist, or is empty"
+            exit 1
+          fi

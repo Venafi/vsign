@@ -1,0 +1,51 @@
+name: CI-Tests
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ['main', 'release-*']
+  pull_request:
+
+permissions: read-all
+
+env:
+  GO_VERSION: 1.19
+
+jobs:
+  unit-tests:
+    name: Run unit tests
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/cache@v3
+        with:
+          # In order:
+          # * Module download cache
+          # * Build cache (Linux)
+          # * Build cache (Mac)
+          # * Build cache (Windows)
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      - uses: actions/setup-go@v3
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          check-latest: true
+      - name: Run Go tests
+        run: go test -covermode atomic -coverprofile ./coverage.txt $(go list ./... | grep -v third_party/)
+      - name: Upload Coverage Report
+        uses: codecov/codecov-action@v2
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          directory: ./coverage/reports/
+          env_vars: OS
+          files: ./coverage.txt
+          verbose: true
+      - name: Run Go tests w/ `-race`
+        if: ${{ runner.os == 'Linux' }}
+        run: go test -race $(go list ./... | grep -v third_party/)

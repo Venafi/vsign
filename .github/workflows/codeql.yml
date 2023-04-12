@@ -1,0 +1,53 @@
+name: CodeQL
+
+on:
+  workflow_dispatch:
+
+env:
+  CODEQL_EXTRACTOR_GO_BUILD_TRACING: true
+
+jobs:
+  analyze:
+    name: Analyze
+    runs-on: ubuntu-latest
+
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [ 'go' ]
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3.1.0
+
+    - name: Utilize Go Module Cache
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/go/pkg/mod
+          ~/.cache/go-build
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+    - name: Set correct version of Golang to use during CodeQL run
+      uses: actions/setup-go@v3.3.0
+      with:
+        go-version: '1.19'
+        check-latest: true
+
+    # Initializes the CodeQL tools for scanning.
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v2
+      with:
+        languages: ${{ matrix.language }}
+
+    - name: Build vsign for CodeQL
+      run: make vsign
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v2

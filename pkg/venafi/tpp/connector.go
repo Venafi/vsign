@@ -1,0 +1,505 @@
+package tpp
+
+import (
+	"crypto/x509"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"regexp"
+	"strings"
+
+	crypto "github.com/venafi/vsign/pkg/crypto"
+	"github.com/venafi/vsign/pkg/endpoint"
+	"github.com/venafi/vsign/pkg/policy"
+	"github.com/venafi/vsign/pkg/util"
+	"github.com/venafi/vsign/pkg/verror"
+)
+
+type Connector struct {
+	baseURL     string
+	apiKey      string
+	accessToken string
+	verbose     bool
+	trust       *x509.CertPool
+	project     string
+	client      *http.Client
+}
+
+// NewConnector creates a new TPP Connector object used to communicate with TPP
+func NewConnector(url string, project string, verbose bool, trust *x509.CertPool) (*Connector, error) {
+	c := Connector{verbose: verbose, trust: trust, project: project}
+	var err error
+	c.baseURL, err = normalizeURL(url)
+	if err != nil {
+		return nil, fmt.Errorf("%w: failed to normalize URL: %v", verror.UserDataError, err)
+	}
+	return &c, nil
+}
+
+// normalizeURL normalizes the base URL used to communicate with TPP
+func normalizeURL(url string) (normalizedURL string, err error) {
+	var baseUrlRegex = regexp.MustCompile(`^https://[a-z\d]+[-a-z\d.]+[a-z\d][:\d]*/$`)
+	modified := strings.ToLower(url)
+	if strings.HasPrefix(modified, "http://") {
+		modified = "https://" + modified[7:]
+	} else if !strings.HasPrefix(modified, "https://") {
+		modified = "https://" + modified
+	}
+	if !strings.HasSuffix(modified, "/") {
+		modified = modified + "/"
+	}
+
+	modified = strings.TrimSuffix(modified, "vedsdk/")
+
+	if loc := baseUrlRegex.FindStringIndex(modified); loc == nil {
+		return "", fmt.Errorf("the specified tpp url is invalid. %s\nexpected tpp url format 'https://tpp.company.com/vedsdk/'", url)
+	}
+
+	return modified, nil
+}
+
+func (c *Connector) SetProject(p string) {
+	c.project = p
+}
+
+func (c *Connector) GetType() endpoint.ConnectorType {
+	return endpoint.ConnectorTypeTPP
+}
+
+// Ping attempts to connect to the TPP Server WebSDK API and returns an errror if it cannot
+func (c *Connector) Ping() (err error) {
+	statusCode, status, _, err := c.request("GET", "vedsdk/", nil)
+	if err != nil {
+		return
+	}
+	if statusCode != http.StatusOK {
+		err = fmt.Errorf(status)
+	}
+	return
+}
+
+func (c *Connector) SetHTTPClient(client *http.Client) {
+	c.client = client
+}
+
+func (c *Connector) GetCredential(auth *endpoint.Authentication) (token string, err error) {
+	var data interface{}
+	var result interface{}
+
+	if auth.JWT != "" {
+		data = oauthGetAccessTokenFromJWTRequest{Client_id: auth.ClientId, Scope: auth.Scope, JWT: auth.JWT}
+		result, err = processAuthData(c, urlResourceAuthorizeJWT, data)
+		if err != nil {
+			return "", err
+		}
+	} else {
+		data = oauthGetRefreshTokenRequest{Client_id: auth.ClientId, Scope: auth.Scope, Username: auth.User, Password: auth.Password}
+		result, err = processAuthData(c, urlResourceAuthorizeOAuth, data)
+		if err != nil {
+			return "", err
+		}
+	}
+
+	resp := result.(OauthGetRefreshTokenResponse)
+
+	return resp.Access_token, nil
+
+}
+
+// Authenticate authenticates the user to the TPP
+func (c *Connector) Authenticate(auth *endpoint.Authentication) (err error) {
+	defer func() {
+		if err != nil {
+			err = fmt.Errorf("%w: %s", verror.AuthError, err)
+		}
+	}()
+
+	if auth == nil {
+		return fmt.Errorf("failed to authenticate: missing credentials")
+	}
+
+	if auth.ClientId == "" {
+		auth.ClientId = endpoint.DefaultClientID
+	}
+
+	if auth.JWT != "" {
+		data := oauthGetAccessTokenFromJWTRequest{Client_id: endpoint.DefaultClientID, Scope: endpoint.DefaultScope, JWT: auth.JWT}
+		result, err := processAuthData(c, urlResourceAuthorizeJWT, data)
+		if err != nil {
+			return err
+		}
+		resp := result.(OauthGetRefreshTokenResponse)
+		auth.AccessToken = resp.Access_token
+		c.accessToken = resp.Access_token
+		return nil
+	}
+
+	if auth.User != "" && auth.Password != "" {
+		data := authorizeRequest{Username: auth.User, Password: auth.Password}
+		result, err := processAuthData(c, urlResourceAuthorize, data)
+		if err != nil {
+			return err
+		}
+
+		resp := result.(authorizeResponse)
+		c.apiKey = resp.APIKey
+		return nil
+
+	} else if auth.RefreshToken != "" {
+		data := oauthRefreshAccessTokenRequest{Client_id: auth.ClientId, Refresh_token: auth.RefreshToken}
+		result, err := processAuthData(c, urlResourceRefreshAccessToken, data)
+		if err != nil {
+			return err
+		}
+
+		resp := result.(OauthRefreshAccessTokenResponse)
+		c.accessToken = resp.Access_token
+		auth.RefreshToken = resp.Refresh_token
+		return nil
+
+	} else if auth.AccessToken != "" {
+		c.accessToken = auth.AccessToken
+		return nil
+	}
+	return fmt.Errorf("failed to authenticate: can't determine valid credentials set")
+}
+
+func (c *Connector) GetEnvironment() (env endpoint.Environment, err error) {
+	environmentReq := environmentRequest{policy.RootPath + util.PathSeparator + c.project}
+	statusCode, status, body, err := c.request("POST", urlResourceCodeSignGetEnvironment, environmentReq)
+	if err != nil {
+		return endpoint.Environment{}, err
+	}
+
+	env, err = parseEnvironmentResult(statusCode, status, body)
+	if err != nil {
+		return endpoint.Environment{}, err
+	}
+	if env.CertificateDN != "" {
+		//Fetch certificate based on CertificateEnvironment
+		certReq := certificateRetrieveRequest{CertificateDN: env.CertificateDN, Format: "Base64", IncludeChain: true}
+		//certReq := apiSignRequest{ClientInfo: ClientInfo{defaultClientID, "0.1"}, ProcessInfo: ProcessInfo{defaultClientID}, KeyId: env.KeyID}
+		statusCode, status, body, err = c.request("POST", urlResourceCertificateRetrieve, certReq)
+		if err != nil {
+			return endpoint.Environment{}, err
+		}
+		certs, err := parseCertificateRetrievalResult(statusCode, status, body)
+		if err != nil {
+			return endpoint.Environment{}, err
+		}
+		env.CertificateChainData = certs
+	}
+
+	return env, nil
+
+}
+
+func (c *Connector) GetEnvironmentKeyAlgorithm() (environmentKeyAlg string, err error) {
+	environmentReq := environmentRequest{policy.RootPath + util.PathSeparator + c.project}
+	statusCode, status, body, err := c.request("POST", urlResourceCodeSignGetEnvironment, environmentReq)
+	if err != nil {
+		return "", err
+	}
+
+	environment, err := parseEnvironmentResult(statusCode, status, body)
+
+	if err != nil {
+		return "", fmt.Errorf("parsing environment key algorithm error: [%s] check codesign protect project/environment permissions", err.Error())
+	}
+
+	if environment.KeyAlgorithm == "" {
+		return "", fmt.Errorf("missing environment keyalgorithm field for %s", environment.CertificateDN)
+	}
+
+	if err != nil {
+		return "", err
+	}
+	return environment.KeyAlgorithm, nil
+
+}
+
+func (c *Connector) GetWKSPublicKeyBytes(email string) (pub []byte, err error) {
+	resource := string(urlResourceCodeSignPKSLookup) + email
+	statusCode, status, body, err := c.request("GET", urlResource(resource), nil)
+	if err != nil {
+		return nil, err
+	}
+	pub, err = parsePKSLookupResult(statusCode, status, body)
+	if err != nil {
+		return nil, err
+	}
+
+	return
+
+}
+
+func (c *Connector) SignJar(r io.Reader, so *endpoint.SignOption) (err error) {
+
+	/*digest, err := jar.DigestJarStream(r, crypto.Sha256)
+	if err != nil {
+		return err
+	}
+	env, err := c.GetEnvironment()
+	if err != nil {
+		return err
+	}
+
+	patch, ts, err := digest.Sign(context.Background(), cert, argAlias, argSectionsOnly, argInlineSignature, argApkV2)
+	if err != nil {
+		return nil, err
+	}*/
+
+	return nil
+}
+
+func (c *Connector) Sign(so *endpoint.SignOption) (sig []byte, err error) {
+	signReq := apiSignRequest{}
+	switch so.Mechanism {
+	case crypto.RsaPkcs, crypto.EcDsa:
+		hasher, _, prefix := crypto.GetHasher(so.DigestAlg)
+		payload := []byte(so.Payload)
+		if so.B64Flag {
+			payload, err = crypto.DecodeBase64(string(so.Payload))
+			if err != nil {
+				return nil, err
+			}
+		}
+		if err != nil {
+			return nil, err
+		}
+		var hv []byte
+		if so.DigestFlag {
+			hv = append(prefix, so.Payload...)
+		} else {
+			hasher.Write([]byte(payload))
+			hv = append(prefix, hasher.Sum(nil)...)
+		}
+		var mech = 0
+		if so.Mechanism == crypto.EcDsa {
+			mech = crypto.GetECClientMechanism(so.DigestAlg)
+		} else {
+			mech = crypto.GetRSAClientMechanism(so.DigestAlg)
+		}
+		//job := defaultClientID + "-job-" + randstr.Hex(10)
+		signReq = apiSignRequest{ClientInfo: ClientInfo{endpoint.DefaultClientID, "0.1"}, ProcessInfo: ProcessInfo{endpoint.DefaultClientID}, KeyId: so.KeyID, ClientMechanism: mech, Mechanism: so.Mechanism, Data: crypto.EncodeBase64(hv)}
+
+	case crypto.RsaPkcsPss: // RSA PSS
+		payload := []byte(so.Payload)
+		if so.B64Flag {
+			payload, err = crypto.DecodeBase64(string(so.Payload))
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		hasher, _, prefix := crypto.GetHasher(so.DigestAlg)
+		hasher.Write([]byte(payload))
+		hv := append(prefix, hasher.Sum(nil)...)
+		//println(base64.StdEncoding.EncodeToString(hv))
+		mech := crypto.GetPSSMechanism(so.DigestAlg)
+		signReq = apiSignRequest{ClientInfo: ClientInfo{endpoint.DefaultClientID, "0.1"}, ProcessInfo: ProcessInfo{endpoint.DefaultClientID}, KeyId: so.KeyID, ClientMechanism: mech.Mechanism, Mechanism: so.Mechanism, ParameterInfo: ParameterInfo{ParameterType: "PKCSPSS", MGF: mech.MGF, HashAlg: mech.HashAlg, SaltLen: mech.SaltLen}, Data: crypto.EncodeBase64(hv)}
+
+	default:
+		signReq = apiSignRequest{ClientInfo: ClientInfo{endpoint.DefaultClientID, "0.1"}, ProcessInfo: ProcessInfo{endpoint.DefaultClientID}, KeyId: so.KeyID, Mechanism: so.Mechanism, Data: string(so.Payload)}
+	}
+	statusCode, status, body, err := c.request("POST", urlResourceCodeSignAPISign, signReq)
+
+	if err != nil {
+		return nil, err
+	}
+
+	result, err := parseSignResult(statusCode, status, body)
+	if err != nil {
+		return nil, err
+	}
+	if so.RawFlag {
+		return []byte(result), err
+	} else {
+		sig, err = crypto.EncodeASN1(result, so.Mechanism)
+	}
+
+	return
+
+}
+
+type Algorithm struct {
+	Alg  string `json:"alg,omitempty"`
+	Type string `json:"typ,omitempty"`
+}
+
+func (c *Connector) SignJWT(keyID string, header string, payload string) (jwt string, err error) {
+	signJWTRequest := apiSignJWTRequest{ClientInfo: ClientInfo{endpoint.DefaultClientID, "0.1"}, ProcessInfo: ProcessInfo{endpoint.DefaultClientID}, KeyId: keyID, Header: header, Payload: payload}
+	statusCode, status, body, err := c.request("POST", urlResourceCodeSignAPISignJWT, signJWTRequest)
+
+	if err != nil {
+		return "", err
+	}
+
+	jwt, err = parseSignResult(statusCode, status, body)
+	if err != nil {
+		return "", err
+	}
+
+	return jwt, nil
+
+}
+
+// Get OAuth refresh and access token
+func (c *Connector) GetRefreshToken(auth *endpoint.Authentication) (resp OauthGetRefreshTokenResponse, err error) {
+
+	if auth == nil {
+		return resp, fmt.Errorf("failed to authenticate: missing credentials")
+	}
+
+	if auth.Scope == "" {
+		auth.Scope = endpoint.DefaultScope
+	}
+	if auth.ClientId == "" {
+		auth.ClientId = endpoint.DefaultClientID
+	}
+
+	if auth.User != "" && auth.Password != "" {
+		data := oauthGetRefreshTokenRequest{Username: auth.User, Password: auth.Password, Scope: auth.Scope, Client_id: auth.ClientId}
+		result, err := processAuthData(c, urlResourceAuthorizeOAuth, data)
+		if err != nil {
+			return resp, err
+		}
+		resp = result.(OauthGetRefreshTokenResponse)
+		return resp, nil
+
+	} else if auth.ClientPKCS12 {
+		data := oauthCertificateTokenRequest{Client_id: auth.ClientId, Scope: auth.Scope}
+		result, err := processAuthData(c, urlResourceAuthorizeCertificate, data)
+		if err != nil {
+			return resp, err
+		}
+
+		resp = result.(OauthGetRefreshTokenResponse)
+		return resp, nil
+	}
+
+	return resp, fmt.Errorf("failed to authenticate: missing credentials")
+}
+
+// Refresh OAuth access token
+func (c *Connector) RefreshAccessToken(auth *endpoint.Authentication) (resp OauthRefreshAccessTokenResponse, err error) {
+
+	if auth == nil {
+		return resp, fmt.Errorf("failed to authenticate: missing credentials")
+	}
+
+	if auth.ClientId == "" {
+		auth.ClientId = endpoint.DefaultClientID
+	}
+
+	if auth.RefreshToken != "" {
+		data := oauthRefreshAccessTokenRequest{Client_id: auth.ClientId, Refresh_token: auth.RefreshToken}
+		result, err := processAuthData(c, urlResourceRefreshAccessToken, data)
+		if err != nil {
+			return resp, err
+		}
+		resp = result.(OauthRefreshAccessTokenResponse)
+		return resp, nil
+	} else {
+		return resp, fmt.Errorf("failed to authenticate: missing refresh token")
+	}
+}
+
+// VerifyAccessToken - call to check whether token is valid and, if so, return its properties
+func (c *Connector) VerifyAccessToken(auth *endpoint.Authentication) (resp OauthVerifyTokenResponse, err error) {
+
+	if auth == nil {
+		return resp, fmt.Errorf("failed to authenticate: missing credentials")
+	}
+
+	if auth.AccessToken != "" {
+		c.accessToken = auth.AccessToken
+		statusCode, statusText, body, err := c.request("GET", urlResource(urlResourceAuthorizeVerify), nil)
+		if err != nil {
+			return resp, err
+		}
+
+		if statusCode == http.StatusOK {
+			var result = &OauthVerifyTokenResponse{}
+			err = json.Unmarshal(body, result)
+			if err != nil {
+				return resp, fmt.Errorf("failed to parse verify token response: %s, body: %s", err, body)
+			}
+			return *result, nil
+		}
+		return resp, fmt.Errorf("failed to verify token. Message: %s", statusText)
+	}
+
+	return resp, fmt.Errorf("failed to authenticate: missing access token")
+}
+
+// RevokeAccessToken - call to revoke token so that it can never be used again
+func (c *Connector) RevokeAccessToken(auth *endpoint.Authentication) (err error) {
+
+	if auth == nil {
+		return fmt.Errorf("failed to authenticate: missing credentials")
+	}
+
+	if auth.AccessToken != "" {
+		c.accessToken = auth.AccessToken
+		statusCode, statusText, _, err := c.request("GET", urlResource(urlResourceRevokeAccessToken), nil)
+		if err != nil {
+			return err
+		}
+
+		if statusCode == http.StatusOK {
+			return nil
+		}
+		return fmt.Errorf("failed to revoke token. Message: %s", statusText)
+	}
+
+	return fmt.Errorf("failed to authenticate: missing access token")
+}
+
+func processAuthData(c *Connector, url urlResource, data interface{}) (resp interface{}, err error) {
+
+	statusCode, status, body, err := c.request("POST", url, data)
+	if err != nil {
+		return resp, err
+	}
+
+	var getRefresh OauthGetRefreshTokenResponse
+	var refreshAccess OauthRefreshAccessTokenResponse
+	var authorize authorizeResponse
+
+	if statusCode == http.StatusOK {
+		switch data.(type) {
+		case oauthGetRefreshTokenRequest, oauthGetAccessTokenFromJWTRequest:
+			err = json.Unmarshal(body, &getRefresh)
+			if err != nil {
+				return resp, err
+			}
+			resp = getRefresh
+		case oauthRefreshAccessTokenRequest:
+			err = json.Unmarshal(body, &refreshAccess)
+			if err != nil {
+				return resp, err
+			}
+			resp = refreshAccess
+		case authorizeRequest:
+			err = json.Unmarshal(body, &authorize)
+			if err != nil {
+				return resp, err
+			}
+			resp = authorize
+		case oauthCertificateTokenRequest:
+			err = json.Unmarshal(body, &getRefresh)
+			if err != nil {
+				return resp, err
+			}
+			resp = getRefresh
+		default:
+			return resp, fmt.Errorf("can not determine data type")
+		}
+	} else {
+		return resp, fmt.Errorf("unexpected status code on TPP Authorize. Status: %s, Details: %s", status, NewAuthenticationError(body))
+	}
+
+	return resp, nil
+}

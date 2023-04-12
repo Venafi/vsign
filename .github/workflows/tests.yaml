@@ -36,6 +36,14 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
           check-latest: true
+      - name: Create config.ini
+        uses: DamianReeves/write-file-action@v1.2
+        with:
+          path: ${{ github.workspace }}/test/config.ini
+          contents: |
+            tpp_url=${{ secrets.TPP_URL }}
+            access_token=${{ secrets.ACCESS_TOKEN }}
+            tpp_project=${{ secrets.TPP_PROJECT }}
       - name: Run Go tests
         run: go test -covermode atomic -coverprofile ./coverage.txt $(go list ./... | grep -v third_party/)
       - name: Upload Coverage Report

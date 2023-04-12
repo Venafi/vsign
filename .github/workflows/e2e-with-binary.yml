@@ -20,9 +20,9 @@ jobs:
       id-token: write
       contents: read
     env:
-      VSIGN_URL: https://vh.venafilab.com
-      VSIGN_TOKEN: ${{secrets.VSIGN_TOKEN}}
-      VSIGN_PROJECT: vsign\rsa2048-cert
+      VSIGN_URL: ${{ secrets.TPP_URL }}
+      VSIGN_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+      VSIGN_PROJECT: ${{ secrets.TPP_PROJECT }}
       IMAGE: docker.io/zosocanuck/cert-manager-dashboard:0.1
 
     steps:

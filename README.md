@@ -17,6 +17,7 @@ VSign is a Go library, SDK, and command line utility designed to secure the code
 ## Use Cases
 1. Generic artifact signing
 2. Notary v2 signing [plugin](https://coolsolutions.venafi.com/ivan.wallis/notation-venafi-csp) that supports Venafi CodeSign Protect 
+3. SDK (see simple use case [here](examples/simple-cli))
 
 ![](media/usecases.png)
 
@@ -96,7 +97,7 @@ certificate scope needed by some parts of vSign library for retrieving code sign
 
 ### Cosign Image Signing
    ```
-   vsign sign --config test/config.ini --image zosocanuck/cert-manager-dashboard:0.1 --mechanism 64
+   vsign sign --config test/config.ini --image myorg/myapp:v1 --mechanism 64
    ```
 
 ### Retrieve Access Token

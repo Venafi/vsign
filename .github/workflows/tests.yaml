@@ -48,14 +48,14 @@ jobs:
         uses: DamianReeves/write-file-action@v1.2
         with:
           path: ${{ github.workspace }}/test/config-ecdsa.ini
-          contents:
+          contents: |
             tpp_url=${{ secrets.TPP_URL }}
             access_token=${{ secrets.ACCESS_TOKEN }}
             tpp_project=${{ secrets.TPP_ECDSA_PROJECT }}
       - name: Run Go tests
         run: go test -covermode atomic -coverprofile ./coverage.txt $(go list ./... | grep -v third_party/)
         env:
-          TPP_PROJECT: ${{ secrets.TPP_PROJECT }}
+          TPP_URL: ${{ secrets.TPP_URL }}
           TPP_USERNAME: ${{ secrets.TPP_USERNAME }}
           TPP_PASSWORD: ${{ secrets.TPP_PASSWORD }}
       - name: Upload Coverage Report
@@ -70,6 +70,6 @@ jobs:
         if: ${{ runner.os == 'Linux' }}
         run: go test -race $(go list ./... | grep -v third_party/)
         env:
-          TPP_PROJECT: ${{ secrets.TPP_PROJECT }}
+          TPP_URL: ${{ secrets.TPP_URL }}
           TPP_USERNAME: ${{ secrets.TPP_USERNAME }}
           TPP_PASSWORD: ${{ secrets.TPP_PASSWORD }}

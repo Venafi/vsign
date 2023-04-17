@@ -185,7 +185,7 @@ require (
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.6 // indirect
-	github.com/rs/zerolog v1.29.0
+	github.com/rs/zerolog v1.29.1
 	github.com/sassoftware/relic/v7 v7.5.4
 	github.com/sigstore/cosign/v2 v2.0.1
 	github.com/spf13/afero v1.9.3 // indirect

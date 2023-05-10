@@ -25,6 +25,7 @@ import (
 	// Initialize providers
 	_ "github.com/venafi/vsign/pkg/plugin/signers/generic"
 	_ "github.com/venafi/vsign/pkg/plugin/signers/jar"
+	_ "github.com/venafi/vsign/pkg/plugin/signers/pdf"
 	_ "github.com/venafi/vsign/pkg/plugin/signers/xml"
 )
 

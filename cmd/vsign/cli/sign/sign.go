@@ -195,18 +195,4 @@ func SignCmd(ctx context.Context, fs *pflag.FlagSet, signOpts options.SignOption
 
 	fmt.Fprintln(os.Stderr, "Pushing signature to:", signOpts.OutputSignature)
 	return nil
-
-	/*if err := signinit.PublishAudit(opts.Audit); err != nil {
-		return err
-	}*/
-
-	//}
-
-	/*if signOpts.OutputSignature != "" {
-		err = os.WriteFile(signOpts.OutputSignature, sig, 0644)
-		if err != nil {
-			return err
-		}
-		fmt.Fprintln(os.Stderr, "Pushing signature to:", signOpts.OutputSignature)
-	}*/
 }

@@ -57,6 +57,7 @@ const (
 	FileTypeIPA
 	FileTypeXAR
 	FileTypeXML
+	FileTypePDF
 	FileTypeGeneric
 )
 
@@ -104,6 +105,8 @@ func Detect(r io.Reader) FileType {
 	case contains(br, []byte{0x06, 0x09, 0x2A, 0x86, 0x48, 0x86, 0xF7, 0x0D, 0x01, 0x07, 0x02}, 256):
 		// OID signedData
 		return FileTypePKCS7
+	case hasPrefix(br, []byte{0x25, 0x50, 0x44, 0x46}): // %PDF
+		return FileTypePDF
 	case isTar(br):
 		return detectTar(br)
 	case isXML(br):

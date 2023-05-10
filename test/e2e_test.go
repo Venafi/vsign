@@ -15,6 +15,7 @@ import (
 	// Initialize signer providers
 	_ "github.com/venafi/vsign/pkg/plugin/signers/generic"
 	_ "github.com/venafi/vsign/pkg/plugin/signers/jar"
+	_ "github.com/venafi/vsign/pkg/plugin/signers/pdf"
 	_ "github.com/venafi/vsign/pkg/plugin/signers/xml"
 )
 
@@ -130,6 +131,68 @@ func TestXMLSign(t *testing.T) {
 	fs.String("output-signature", signaturePath, "signature")
 	fs.String("digest", "sha256", "digest")
 	fs.Int("mechanism", c.EcDsa, "mechanism")
+
+	must(sign.SignCmd(ctx, fs, options.SignOptions{Config: configPath, OutputSignature: signaturePath, ImageRef: "", PayloadPath: payloadPath, Mechanism: c.EcDsa, Digest: "sha256"}, nil), t)
+	must(verify.VerifyCmd(ctx, options.VerifyOptions{Config: configPath, SignaturePath: signaturePath, PayloadPath: payloadPath, Digest: "sha256"}, nil), t)
+
+}
+
+func TestPDFSign(t *testing.T) {
+	ctx := context.Background()
+
+	//Test RSAPKCS SHA256
+	configPath := filepath.Join("./", "config.ini")
+	payloadPath := filepath.Join("./", "dummy.pdf")
+	signaturePath := filepath.Join("./", "dummy-signed-rsasha256.pdf")
+
+	fs := pflag.NewFlagSet("sign", pflag.ContinueOnError)
+	fs.String("config", configPath, "config")
+	fs.String("payload", payloadPath, "payload")
+	fs.String("output-signature", signaturePath, "signature")
+	fs.String("digest", "sha256", "digest")
+	fs.Int("mechanism", c.RsaPkcs, "mechanism")
+	fs.String("name", "John Doe", "name")
+	fs.String("location", "Palo Alto", "location")
+	fs.String("reason", "Testing", "reason")
+	fs.String("contact", "johndoe@example.com", "contact")
+	fs.String("tsa", "http://timestamp.digicert.com", "tsa")
+
+	must(sign.SignCmd(ctx, fs, options.SignOptions{Config: configPath, OutputSignature: signaturePath, ImageRef: "", PayloadPath: payloadPath, Mechanism: c.RsaPkcs, Digest: "sha256"}, nil), t)
+	must(verify.VerifyCmd(ctx, options.VerifyOptions{Config: configPath, SignaturePath: signaturePath, PayloadPath: payloadPath, Digest: "sha256"}, nil), t)
+
+	//Test RSAPKCS SHA1
+	signaturePath = filepath.Join("./", "dummy-signed-rsasha1.pdf")
+
+	fs = pflag.NewFlagSet("sign", pflag.ContinueOnError)
+	fs.String("config", configPath, "config")
+	fs.String("payload", payloadPath, "payload")
+	fs.String("output-signature", signaturePath, "signature")
+	fs.String("digest", "sha1", "digest")
+	fs.Int("mechanism", c.RsaPkcs, "mechanism")
+	fs.String("name", "John Doe", "name")
+	fs.String("location", "Palo Alto", "location")
+	fs.String("reason", "Testing", "reason")
+	fs.String("contact", "johndoe@example.com", "contact")
+	fs.String("tsa", "http://timestamp.digicert.com", "tsa")
+
+	must(sign.SignCmd(ctx, fs, options.SignOptions{Config: configPath, OutputSignature: signaturePath, ImageRef: "", PayloadPath: payloadPath, Mechanism: c.RsaPkcs, Digest: "sha1"}, nil), t)
+	must(verify.VerifyCmd(ctx, options.VerifyOptions{Config: configPath, SignaturePath: signaturePath, PayloadPath: payloadPath, Digest: "sha1"}, nil), t)
+
+	//Test ECDSA SHA256
+	configPath = filepath.Join("./", "config-ecdsa.ini")
+	signaturePath = filepath.Join("./", "dummy-signed-ecdsasha256.pdf")
+
+	fs = pflag.NewFlagSet("sign", pflag.ContinueOnError)
+	fs.String("config", configPath, "config")
+	fs.String("payload", payloadPath, "payload")
+	fs.String("output-signature", signaturePath, "signature")
+	fs.String("digest", "sha256", "digest")
+	fs.Int("mechanism", c.EcDsa, "mechanism")
+	fs.String("name", "John Doe", "name")
+	fs.String("location", "Palo Alto", "location")
+	fs.String("reason", "Testing", "reason")
+	fs.String("contact", "johndoe@example.com", "contact")
+	fs.String("tsa", "http://timestamp.digicert.com", "tsa")
 
 	must(sign.SignCmd(ctx, fs, options.SignOptions{Config: configPath, OutputSignature: signaturePath, ImageRef: "", PayloadPath: payloadPath, Mechanism: c.EcDsa, Digest: "sha256"}, nil), t)
 	must(verify.VerifyCmd(ctx, options.VerifyOptions{Config: configPath, SignaturePath: signaturePath, PayloadPath: payloadPath, Digest: "sha256"}, nil), t)

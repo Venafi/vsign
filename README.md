@@ -158,3 +158,17 @@ vsign sign --config test/config.ini --payload test/hello.xml --output-signature 
 ```
 vsign verify --config test/config.ini --payload test/hello.jar --signature test/hello-signed.jar --digest sha256
 ```
+
+#### PDF Signing
+
+Inspired by the [Digitorus pdfsign](https://github.com/digitorus/pdfsign) project
+
+```
+vsign sign --config test/config.ini --payload test/dummy.pdf --output-signature test/dummy-signed.pdf --digest sha256 --mechanism 1 --name "John Doe" --location "Pleasantville" --reason "Contract" --contact "john@doe.com"
+```
+
+#### PDF Signature Verification
+
+```
+vsign verify --config test/config.ini --payload test/dummy.pdf --signature test/dummy-signed.pdf --digest sha256
+```

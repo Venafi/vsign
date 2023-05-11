@@ -108,11 +108,6 @@ func VerifyCmd(ctx context.Context, verifyOpts options.VerifyOptions, args []str
 		return fmt.Errorf("%w; unknown verification error", err)
 	}
 
-	/*err = mod.Verify(f, verifyOpts, signers.VerifyOpts{TPP: connector})
-	if err != nil {
-		return fmt.Errorf("verification failure: %v", err.Error())
-	}*/
-
 	log.Println("Verification successful")
 	return nil
 }

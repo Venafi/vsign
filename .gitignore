@@ -29,3 +29,12 @@ dist/
 
 # signer plugin signature files
 test/hello-signed.jar
+test/dummy-signed.pdf
+test/dummy-signed-rsasha256.pdf
+test/dummy-signed-rsasha1.pdf
+test/dummy-signed-ecdsasha256.pdf
+
+
+# config files
+test/config.ini
+test/config-ecdsa.ini

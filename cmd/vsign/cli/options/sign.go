@@ -29,6 +29,7 @@ type SignOptions struct {
 	Mechanism       int
 	SigType         string
 	Jar             JarOptions
+	PDF             PDFOptions
 }
 
 var _ Interface = (*SignOptions)(nil)
@@ -37,6 +38,7 @@ var _ Interface = (*SignOptions)(nil)
 func (o *SignOptions) AddFlags(cmd *cobra.Command) {
 
 	o.Jar.AddFlags(cmd)
+	o.PDF.AddFlags(cmd)
 
 	cmd.Flags().StringVar(&o.Config, "config", "",
 		"path to the Venafi configuration file")

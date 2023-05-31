@@ -233,7 +233,6 @@ func (c *Connector) GetEnvironment() (env endpoint.Environment, err error) {
 			env.CertificateChainData = certs
 		} else {
 			certReq := certificateRetrieveRequest{CertificateDN: env.CertificateDN, Format: "Base64", IncludeChain: true}
-			//certReq := apiSignRequest{ClientInfo: ClientInfo{defaultClientID, "0.1"}, ProcessInfo: ProcessInfo{defaultClientID}, KeyId: env.KeyID}
 			statusCode, status, body, err = c.request("POST", urlResourceCertificateRetrieve, certReq)
 			if err != nil {
 				return endpoint.Environment{}, err

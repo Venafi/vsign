@@ -3,6 +3,7 @@ package tpp
 import (
 	"bytes"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -163,6 +164,23 @@ type certificateRetrieveResponse struct {
 	Stage           int    `json:",omitempty"`
 }
 
+type getObjectsRequest struct {
+	KeyID        string `json:"KeyId,omitempty"`
+	IncludeChain bool   `json:"IncludeChains,omitempty"`
+}
+
+type Certificate struct {
+	Value string `json:",omitempty"`
+}
+
+type getObjectsResponse struct {
+	Certificates []Certificate `json:",omitempty"`
+}
+
+type systemStatusVersionResponse struct {
+	Version string `json:",omitempty"`
+}
+
 const (
 	urlResourceAuthorize              urlResource = "vedsdk/authorize"
 	urlResourceRefreshAccessToken     urlResource = "vedauth/authorize/token" // #nosec
@@ -177,6 +195,8 @@ const (
 	urlResourceCodeSignPKSLookup      urlResource = "pks/lookup?op=get&search="
 	urlResourceCertificateRetrieve    urlResource = "vedsdk/certificates/retrieve"
 	urlResourceCodeSignGetChain       urlResource = "vedhsm/api/getchain"
+	urlResourceCodeSignGetObjects     urlResource = "vedhsm/api/getobjects"
+	urlResourceSystemStatusVersion    urlResource = "vedsdk/systemstatus/version"
 )
 
 func (c *Connector) request(method string, resource urlResource, data interface{}) (statusCode int, statusText string, body []byte, err error) {
@@ -280,6 +300,34 @@ func parseEnvironmentResult(httpStatusCode int, httpStatus string, body []byte) 
 	}
 }
 
+func parseGetObjectsResult(httpStatusCode int, httpStatus string, body []byte) ([][]byte, error) {
+	switch httpStatusCode {
+	case http.StatusOK, http.StatusCreated:
+		reqData, err := parseGetObjectsData(body)
+		if err != nil {
+			return nil, err
+		}
+		certChain := make([][]byte, 0, len(reqData.Certificates))
+		for _, cert := range reqData.Certificates {
+			decData, err := base64.StdEncoding.DecodeString(cert.Value)
+			if err != nil {
+				return nil, fmt.Errorf("failed to decode base64 certificate")
+			}
+			c, err := x509.ParseCertificate(decData)
+			if err != nil {
+				return nil, fmt.Errorf("error parsing certificate")
+			}
+			certChain = append(certChain, c.Raw)
+
+		}
+
+		return certChain, nil
+	default:
+		return nil, fmt.Errorf("unexpected status code on TPP Environment Request.\n Status:\n %s. \n Body:\n %s", httpStatus, body)
+	}
+
+}
+
 func parseCertificateRetrievalResult(httpStatusCode int, httpStatus string, body []byte) ([][]byte, error) {
 	switch httpStatusCode {
 	case http.StatusOK, http.StatusCreated:
@@ -318,6 +366,11 @@ func parseCertificateRetrievalResult(httpStatusCode int, httpStatus string, body
 }
 
 func parseEnvironmentData(b []byte) (data environmentRequestResponse, err error) {
+	err = json.Unmarshal(b, &data)
+	return
+}
+
+func parseGetObjectsData(b []byte) (data getObjectsResponse, err error) {
 	err = json.Unmarshal(b, &data)
 	return
 }

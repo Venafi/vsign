@@ -4,9 +4,9 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
 
 	crypto "github.com/venafi/vsign/pkg/crypto"
@@ -165,6 +165,37 @@ func (c *Connector) Authenticate(auth *endpoint.Authentication) (err error) {
 	return fmt.Errorf("failed to authenticate: can't determine valid credentials set")
 }
 
+func (c *Connector) RetrieveSystemMajorVersion() (int, error) {
+	statusCode, status, body, err := c.request("GET", urlResourceSystemStatusVersion, "")
+	if err != nil {
+		return 0, err
+	}
+	//Put in hint for authentication scope 'configuration'
+	switch statusCode {
+	case 200:
+	case 401:
+		return 0, fmt.Errorf("http status code '%s' was returned by the server. Hint: OAuth scope 'configuration' is required when using custom fields", status)
+	default:
+		return 0, fmt.Errorf("unexpected http status code while fetching TPP version. %s", status)
+	}
+
+	var response systemStatusVersionResponse
+	err = json.Unmarshal(body, &response)
+
+	if err != nil {
+		return 0, fmt.Errorf("unexpected error with unmarshaling response. err: %s", err)
+	}
+
+	majorVersion := strings.Split(response.Version, ".")[0]
+
+	v, err := strconv.Atoi(majorVersion)
+	if err != nil {
+		return 0, fmt.Errorf("failed due to Venafi system session's format is invalid. error: %s", err)
+	}
+
+	return v, err
+}
+
 func (c *Connector) GetEnvironment() (env endpoint.Environment, err error) {
 	environmentReq := environmentRequest{policy.RootPath + util.PathSeparator + c.project}
 	statusCode, status, body, err := c.request("POST", urlResourceCodeSignGetEnvironment, environmentReq)
@@ -178,17 +209,41 @@ func (c *Connector) GetEnvironment() (env endpoint.Environment, err error) {
 	}
 	if env.CertificateDN != "" {
 		//Fetch certificate based on CertificateEnvironment
-		certReq := certificateRetrieveRequest{CertificateDN: env.CertificateDN, Format: "Base64", IncludeChain: true}
-		//certReq := apiSignRequest{ClientInfo: ClientInfo{defaultClientID, "0.1"}, ProcessInfo: ProcessInfo{defaultClientID}, KeyId: env.KeyID}
-		statusCode, status, body, err = c.request("POST", urlResourceCertificateRetrieve, certReq)
+
+		// 23.1 introduced ability to filter by specific KeyId, therefore reducing the token scope needed to use vsign
+		version, err := c.RetrieveSystemMajorVersion()
 		if err != nil {
-			return endpoint.Environment{}, err
+			return endpoint.Environment{}, fmt.Errorf("failed to get Venafi system version.  error: %v", err)
 		}
-		certs, err := parseCertificateRetrievalResult(statusCode, status, body)
-		if err != nil {
-			return endpoint.Environment{}, err
+
+		if version == 0 {
+			return endpoint.Environment{}, fmt.Errorf("failed to get Venafi system version.  error: %v", err)
 		}
-		env.CertificateChainData = certs
+
+		if version > 22 {
+			certReq := getObjectsRequest{KeyID: env.KeyID, IncludeChain: true}
+			statusCode, status, body, err = c.request("POST", urlResourceCodeSignGetObjects, certReq)
+			if err != nil {
+				return endpoint.Environment{}, err
+			}
+			certs, err := parseGetObjectsResult(statusCode, status, body)
+			if err != nil {
+				return endpoint.Environment{}, err
+			}
+			env.CertificateChainData = certs
+		} else {
+			certReq := certificateRetrieveRequest{CertificateDN: env.CertificateDN, Format: "Base64", IncludeChain: true}
+			//certReq := apiSignRequest{ClientInfo: ClientInfo{defaultClientID, "0.1"}, ProcessInfo: ProcessInfo{defaultClientID}, KeyId: env.KeyID}
+			statusCode, status, body, err = c.request("POST", urlResourceCertificateRetrieve, certReq)
+			if err != nil {
+				return endpoint.Environment{}, err
+			}
+			certs, err := parseCertificateRetrievalResult(statusCode, status, body)
+			if err != nil {
+				return endpoint.Environment{}, err
+			}
+			env.CertificateChainData = certs
+		}
 	}
 
 	return env, nil
@@ -234,27 +289,8 @@ func (c *Connector) GetWKSPublicKeyBytes(email string) (pub []byte, err error) {
 
 }
 
-func (c *Connector) SignJar(r io.Reader, so *endpoint.SignOption) (err error) {
-
-	/*digest, err := jar.DigestJarStream(r, crypto.Sha256)
-	if err != nil {
-		return err
-	}
-	env, err := c.GetEnvironment()
-	if err != nil {
-		return err
-	}
-
-	patch, ts, err := digest.Sign(context.Background(), cert, argAlias, argSectionsOnly, argInlineSignature, argApkV2)
-	if err != nil {
-		return nil, err
-	}*/
-
-	return nil
-}
-
 func (c *Connector) Sign(so *endpoint.SignOption) (sig []byte, err error) {
-	signReq := apiSignRequest{}
+	var signReq apiSignRequest
 	switch so.Mechanism {
 	case crypto.RsaPkcs, crypto.EcDsa:
 		hasher, _, prefix := crypto.GetHasher(so.DigestAlg)

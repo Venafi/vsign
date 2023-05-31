@@ -36,9 +36,14 @@ VSign is a Go library, SDK, and command line utility designed to secure the code
 You can either use environment variables or a configuration file to customize interaction with the underlying WebSDK.
 
 #### Pre-requisites for using with CodeSign Protect:
-1. `vsign-sdk` API Integration has been created with the following minimum scopes: `codesignclient;codesign;certificate:manage,discover`
+1. `vsign-sdk` API Integration has been created with the following minimum scopes: 
+   
+| TPP Version | Minimum Scopes | Permissions |
+| ----------- | -------------- | ----------- |
+| <= 22.4 | `codesignclient;codesign;certificate:manage,discover` | Code signing certificate must be granted `View,Read` since `POST Certificates/Retrieve` is used to fetch the code signing certificates and optional chain |
+| >= 23.x | `codesignclient;codesign` | None |
+
 2. Code signing user is assigned to `vsign-sdk` API integration.
-3. Code signing certificate has been granted the following permissions: `View,Read`.  This is needed since parts of the library retrieve the code signing certificate.
 
 #### Create Environment variables
 

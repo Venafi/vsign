@@ -182,6 +182,7 @@ require (
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.3 // indirect
 	sigs.k8s.io/yaml v1.3.0 // indirect
+	software.sslmate.com/src/go-pkcs12 v0.2.0 // indirect
 )
 
 require (
@@ -193,7 +194,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.8 // indirect
 	github.com/rs/zerolog v1.29.1
-	github.com/sassoftware/relic/v7 v7.5.4
+	github.com/sassoftware/relic/v7 v7.5.5
 	github.com/sigstore/cosign/v2 v2.0.3-0.20230510180508-ce711bd35b97
 	github.com/spf13/afero v1.9.5 // indirect
 	github.com/spf13/cast v1.5.1 // indirect

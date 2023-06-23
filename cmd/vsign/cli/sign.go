@@ -41,8 +41,6 @@ func Sign() *cobra.Command {
 		},
 	}
 	o.AddFlags(cmd)
-	/*shared.AddLateHook(func() {
-		signers.MergeFlags(cmd)
-	})*/
+
 	return cmd
 }

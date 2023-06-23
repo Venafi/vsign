@@ -58,10 +58,6 @@ func main() {
 		}
 	}
 
-	/*for _, f := range shared.LateHooks {
-		f()
-	}*/
-
 	if err := cli.New().Execute(); err != nil {
 		log.Fatalf("error during command execution: %v", err)
 	}

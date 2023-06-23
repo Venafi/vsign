@@ -88,6 +88,7 @@ certificate scope needed by some parts of vSign library for retrieving code sign
    vsign sign --config test/config.ini --output-signature test/output.sig --payload test/data.txt --mechanism 64
    ```
 * Refer to [vSign Mechanism compatibility guide](COMPATIBILITY.md) for list of supported Venafi CodeSign Protect PKCS#11 mechanisms
+* **IMPORTANT**: Client-side hashing mechanisms are the preferred approach for signing payloads.  vSign will automatically detect if you are attempting to sign a large payload with a server-side hashing mechanism and terminate.
   
 ### Verification
    ```
@@ -170,6 +171,28 @@ Inspired by the [Digitorus pdfsign](https://github.com/digitorus/pdfsign) projec
 
 ```
 vsign sign --config test/config.ini --payload test/dummy.pdf --output-signature test/dummy-signed.pdf --digest sha256 --mechanism 1 --name "John Doe" --location "Pleasantville" --reason "Contract" --contact "john@doe.com"
+```
+
+##### Troubleshooting
+
+vSign relies on a compliant PDF document for successful signing and verification.  In the scenario where the originating PDF tool produces a malformed PDF, such as with the following error: `malformed PDF: malformed xref table`, it may be possible to repair the PDF using tools such as from [qpdf](https://github.com/qpdf/qpdf).
+
+Example:
+
+`qpdf invalid.pdf repaired.pdf`
+
+You can also analyze the PDF as follows:
+
+`qpdf --check invalid.pdf`
+
+```
+checking invalid.pdf
+PDF Version: 1.6
+File is not encrypted
+File is linearized
+WARNING: invalid.pdf: page 0 has shared identifier entries
+WARNING: invalid.pdf: page 0: shared object 6: in hint table but not computed list
+qpdf: operation succeeded with warnings
 ```
 
 #### PDF Signature Verification

@@ -61,6 +61,15 @@ func SignCmd(ctx context.Context, fs *pflag.FlagSet, signOpts options.SignOption
 		return fmt.Errorf("erro setting TLS config")
 	}
 
+	info, err := os.Stat(signOpts.PayloadPath)
+	if err != nil {
+		return fmt.Errorf("error obtaining payload size")
+	}
+
+	if !isValidPayloadSizeForMechanism(info.Size(), signOpts.Mechanism) {
+		return fmt.Errorf("payload size is invalid for server-side hashing mechanism.  use client-side hashing mechanisms for large payloads")
+	}
+
 	cfg, err := vsign.BuildConfig(ctx, signOpts.Config)
 	if err != nil {
 		logger.Printf("error building config: %s", err)
@@ -136,17 +145,6 @@ func SignCmd(ctx context.Context, fs *pflag.FlagSet, signOpts options.SignOption
 		return err
 	}
 
-	/*fs := pflag.NewFlagSet("Example", pflag.ContinueOnError)
-	fs.Bool("sections-only-test", false, "verbose output")
-	fs.Bool("inline-signature-test", false, "verbose output")
-	fs.Bool("apk-v2-present-test", false, "verbose output")*/
-
-	/*flags, err := mod.FlagsFromCmdline(fs)
-	fmt.Printf("inline-signature=%v", flags.GetBool("inline-signature"))
-	if err != nil {
-		return shared.Fail(err)
-	}*/
-
 	opts := &signers.SignOpts{
 		TPP:       connector,
 		KeyID:     env.KeyID,
@@ -195,4 +193,13 @@ func SignCmd(ctx context.Context, fs *pflag.FlagSet, signOpts options.SignOption
 
 	fmt.Fprintln(os.Stderr, "Pushing signature to:", signOpts.OutputSignature)
 	return nil
+}
+
+func isValidPayloadSizeForMechanism(size int64, mechanism int) bool {
+
+	if (size > 10000) && mechanism != c.EcDsa && mechanism != c.RsaPkcs && mechanism != c.RsaPkcsPss {
+		return false
+	}
+
+	return true
 }

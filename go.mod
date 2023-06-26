@@ -10,7 +10,7 @@ require (
 	github.com/digitorus/timestamp v0.0.0-20230220124323-d542479a2425
 	github.com/mattetti/filebuffer v1.0.1
 	github.com/pkg/errors v0.9.1
-	github.com/sigstore/sigstore v1.7.0
+	github.com/sigstore/sigstore v1.7.1
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.16.0
 	golang.org/x/crypto v0.10.0

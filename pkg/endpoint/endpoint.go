@@ -1,6 +1,7 @@
 package endpoint
 
 import (
+	"crypto/x509"
 	"fmt"
 	"log"
 	"net/http"
@@ -49,6 +50,8 @@ type Connector interface {
 	SignJWT(KeyID string, headerPath string, payloadPath string) (string, error)
 	// Get GPG public keys
 	GetWKSPublicKeyBytes(email string) ([]byte, error)
+	// Get JWKS
+	GetJwksX5u(cert *x509.Certificate) (string, error)
 	Ping() (err error)
 	// Authenticate is usually called by NewClient and it is not required that you manually call it.
 	Authenticate(auth *Authentication) (err error)

@@ -11,6 +11,8 @@ import (
 	"github.com/venafi/vsign/cmd/vsign/cli/sign"
 	"github.com/venafi/vsign/cmd/vsign/cli/verify"
 	c "github.com/venafi/vsign/pkg/crypto"
+	"github.com/venafi/vsign/pkg/venafi/tpp"
+	"github.com/venafi/vsign/pkg/vsign"
 
 	// Initialize signer providers
 	_ "github.com/venafi/vsign/pkg/plugin/signers/generic"
@@ -50,6 +52,33 @@ func TestSignVerifyCleanGeneric(t *testing.T) {
 
 	must(sign.SignCmd(ctx, fs, options.SignOptions{Config: configPath, OutputSignature: signaturePath, ImageRef: "", PayloadPath: payloadPath, Mechanism: 64, Digest: "sha256"}, nil), t)
 	must(verify.VerifyCmd(ctx, options.VerifyOptions{SignaturePath: signaturePath, PayloadPath: payloadPath, PublicKeyPath: publicKeyPath, Digest: "sha256"}, nil), t)
+}
+
+func TestJWKSLookupAndCertRetrievalPKS(t *testing.T) {
+	cfg, err := vsign.BuildConfig(context.TODO(), "config.ini")
+	if err != nil {
+		t.Error("error building config")
+	}
+	connector, err := vsign.NewClient(&cfg)
+	if err != nil {
+		t.Error("error")
+	}
+	env, err := connector.GetEnvironment()
+	if err != nil {
+		t.Error(err)
+	}
+	cert, err := c.ParseCertificates(env.CertificateChainData)
+	if err != nil {
+		t.Error(err)
+	}
+	url, err := connector.GetJwksX5u(cert[0])
+	if err != nil {
+		t.Error(err)
+	}
+	_, err = tpp.GetPKSCertificate(url)
+	if err != nil {
+		t.Error(err)
+	}
 }
 
 func TestJarSign(t *testing.T) {

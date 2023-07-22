@@ -177,8 +177,15 @@ type getObjectsResponse struct {
 	Certificates []Certificate `json:",omitempty"`
 }
 
+type JWKS struct {
+	X5U string `json:"x5u,omitempty"`
+}
 type systemStatusVersionResponse struct {
 	Version string `json:",omitempty"`
+}
+
+type jwksLookupResponse struct {
+	Keys []JWKS `json:"keys,omitempty"`
 }
 
 const (
@@ -193,6 +200,7 @@ const (
 	urlResourceCodeSignAPISign        urlResource = "vedhsm/api/sign"
 	urlResourceCodeSignAPISignJWT     urlResource = "vedhsm/api/signjwt"
 	urlResourceCodeSignPKSLookup      urlResource = "pks/lookup?op=get&search="
+	urlResourceCodeSignJWKSLookup     urlResource = "pks/lookup/jwks?x509Thumbprints="
 	urlResourceCertificateRetrieve    urlResource = "vedsdk/certificates/retrieve"
 	urlResourceCodeSignGetChain       urlResource = "vedhsm/api/getchain"
 	urlResourceCodeSignGetObjects     urlResource = "vedhsm/api/getobjects"
@@ -399,6 +407,24 @@ func parseSignResult(httpStatusCode int, httpStatus string, body []byte) (string
 func parseSignData(b []byte) (data apiSignResponse, err error) {
 	err = json.Unmarshal(b, &data)
 	return
+}
+
+func parseJWKSData(b []byte) (data jwksLookupResponse, err error) {
+	err = json.Unmarshal(b, &data)
+	return
+}
+
+func parseJWKSLookupResult(httpStatusCode int, httpStatus string, body []byte) (string, error) {
+	switch httpStatusCode {
+	case http.StatusOK, http.StatusCreated:
+		reqData, err := parseJWKSData(body)
+		if err != nil {
+			return "", err
+		}
+		return reqData.Keys[0].X5U, nil
+	default:
+		return "", fmt.Errorf("unexpected status code on TPP JWKS Request.\n Status:\n %s. \n Body:\n %s", httpStatus, body)
+	}
 }
 
 func parsePKSLookupResult(httpStatusCode int, httpStatus string, body []byte) ([]byte, error) {

@@ -10,4 +10,5 @@ var (
 	ServerBadDataResponce           = fmt.Errorf("%w: server returns 400 code. your request has problems", ServerError)
 	UserDataError                   = fmt.Errorf("%w: your data contains problems", VsignError)
 	AuthError                       = fmt.Errorf("%w: auth error", UserDataError)
+	UnSupportedAPI                  = fmt.Errorf("%w: unsupported api", VsignError)
 )

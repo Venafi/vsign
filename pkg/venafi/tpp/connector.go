@@ -1,13 +1,18 @@
 package tpp
 
 import (
+	"crypto/sha256"
 	"crypto/x509"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
+	"io"
+	"net"
 	"net/http"
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	crypto "github.com/venafi/vsign/pkg/crypto"
 	"github.com/venafi/vsign/pkg/endpoint"
@@ -537,4 +542,86 @@ func processAuthData(c *Connector, url urlResource, data interface{}) (resp inte
 	}
 
 	return resp, nil
+}
+
+// Fetches PEM Certificate from PKS endpoint
+// Pre-requisite is 23.1+
+func GetPKSCertificate(url string) (*x509.Certificate, error) {
+	var statusCode int
+	var statusText string
+
+	r, _ := http.NewRequest("GET", url, nil)
+	r.Close = true
+
+	var netTransport = &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		DialContext: (&net.Dialer{
+			Timeout:   60 * time.Second,
+			KeepAlive: 30 * time.Second,
+			DualStack: true,
+		}).DialContext,
+		MaxIdleConns:          100,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+	}
+	tlsConfig := http.DefaultTransport.(*http.Transport).TLSClientConfig
+	netTransport.TLSClientConfig = tlsConfig
+	client := &http.Client{
+		Timeout:   time.Second * 60,
+		Transport: netTransport,
+	}
+	res, err := client.Do(r)
+	if err != nil {
+		return nil, err
+	}
+
+	if res != nil {
+		statusCode = res.StatusCode
+		statusText = res.Status
+	}
+
+	if statusCode == http.StatusOK {
+		defer res.Body.Close()
+		body, err := io.ReadAll(res.Body)
+		if err != nil {
+			return nil, err
+		}
+		block, _ := pem.Decode(body)
+		cert, err := x509.ParseCertificate(block.Bytes)
+		if err != nil {
+			return nil, fmt.Errorf("certificate retrieval via PKS failed response: %s, body: %s", err, body)
+		}
+		return cert, nil
+	}
+	return nil, fmt.Errorf("certificate retrieval via PKS failed. Message: %s", statusText)
+
+}
+
+// Fetches JKWS for a specific code signing certificate
+// Pre-requisite is 23.1+
+func (c *Connector) GetJwksX5u(cert *x509.Certificate) (string, error) {
+	version, err := c.RetrieveSystemMajorVersion()
+	if err != nil {
+		return "", err
+	}
+
+	if version > 22 {
+		fingerprint := sha256.Sum256(cert.Raw)
+		statusCode, status, body, err := c.request("GET", urlResourceCodeSignJWKSLookup+urlResource(fmt.Sprintf("%x", fingerprint)), nil)
+		if err != nil {
+			return "", err
+		}
+
+		x5u, err := parseJWKSLookupResult(statusCode, status, body)
+		if err != nil {
+			return "", err
+		}
+		// Need to strip JSON double quotes
+		return x5u[1 : len(x5u)-1], nil
+
+	} else {
+		return "", verror.UnSupportedAPI
+	}
+
 }

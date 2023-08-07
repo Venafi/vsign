@@ -13,7 +13,7 @@ require (
 	github.com/sigstore/sigstore v1.7.1
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.16.0
-	golang.org/x/crypto v0.11.0
+	golang.org/x/crypto v0.12.0
 )
 
 require (
@@ -163,7 +163,7 @@ require (
 	golang.org/x/net v0.11.0 // indirect
 	golang.org/x/oauth2 v0.9.0 // indirect
 	golang.org/x/sync v0.3.0 // indirect
-	golang.org/x/term v0.10.0 // indirect
+	golang.org/x/term v0.11.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20230530153820-e85fd2cbaebc // indirect
@@ -203,8 +203,8 @@ require (
 	github.com/stretchr/testify v1.8.4
 	github.com/subosito/gotenv v1.4.2 // indirect
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8
-	golang.org/x/sys v0.10.0 // indirect
-	golang.org/x/text v0.11.0
+	golang.org/x/sys v0.11.0 // indirect
+	golang.org/x/text v0.12.0
 	gopkg.in/ini.v1 v1.67.0
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	sigs.k8s.io/release-utils v0.7.4

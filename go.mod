@@ -203,7 +203,7 @@ require (
 	github.com/subosito/gotenv v1.4.2 // indirect
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8
 	golang.org/x/sys v0.11.0 // indirect
-	golang.org/x/text v0.12.0
+	golang.org/x/text v0.13.0
 	gopkg.in/ini.v1 v1.67.0
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	sigs.k8s.io/release-utils v0.7.4

@@ -25,7 +25,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/common-nighthawk/go-figure"
 	"github.com/venafi/vsign/cmd/vsign/cli/options"
 	c "github.com/venafi/vsign/pkg/crypto"
 	"github.com/venafi/vsign/pkg/plugin/signers"
@@ -60,10 +59,6 @@ func testpath(string) bool {
 
 // sign a manifest and return the PKCS#7 blob
 func sign(r io.Reader, cert *certloader.Certificate, opts signers.SignOpts) ([]byte, error) {
-
-	experimental := figure.NewFigure("experimental: PDF signing", "", true)
-	experimental.Print()
-
 	var err error
 
 	certificate_chains := make([][]*x509.Certificate, 0)
@@ -100,10 +95,6 @@ func sign(r io.Reader, cert *certloader.Certificate, opts signers.SignOpts) ([]b
 }
 
 func verify(f *os.File, opts options.VerifyOptions, tppOpts signers.VerifyOpts) error {
-
-	experimental := figure.NewFigure("experimental: PDF signing", "", true)
-	experimental.Print()
-
 	_, err := verifier.File(f)
 	if err != nil {
 		return err

@@ -10,7 +10,7 @@ require (
 	github.com/digitorus/timestamp v0.0.0-20230821155606-d1ad5ca9624c
 	github.com/mattetti/filebuffer v1.0.1
 	github.com/pkg/errors v0.9.1
-	github.com/sigstore/sigstore v1.7.4
+	github.com/sigstore/sigstore v1.7.5
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.17.0
 	golang.org/x/crypto v0.14.0
@@ -69,9 +69,9 @@ require (
 	github.com/danieljoos/wincred v1.1.2 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/dimchansky/utfbom v1.1.1 // indirect
-	github.com/docker/cli v24.0.0+incompatible // indirect
+	github.com/docker/cli v24.0.7+incompatible // indirect
 	github.com/docker/distribution v2.8.2+incompatible // indirect
-	github.com/docker/docker v24.0.0+incompatible // indirect
+	github.com/docker/docker v24.0.7+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.7.0 // indirect
 	github.com/emicklei/go-restful/v3 v3.10.2 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.2 // indirect
@@ -167,7 +167,7 @@ require (
 	golang.org/x/sync v0.3.0 // indirect
 	golang.org/x/term v0.13.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
-	google.golang.org/appengine v1.6.7 // indirect
+	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20230920204549-e6e6cdab5c13 // indirect
 	google.golang.org/grpc v1.58.3 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
@@ -208,5 +208,5 @@ require (
 	golang.org/x/text v0.13.0
 	gopkg.in/ini.v1 v1.67.0
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	sigs.k8s.io/release-utils v0.7.5
+	sigs.k8s.io/release-utils v0.7.6
 )

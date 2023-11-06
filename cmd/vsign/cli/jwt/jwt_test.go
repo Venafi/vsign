@@ -24,7 +24,7 @@ func TestJWT(t *testing.T) {
 			header:      "{'alg':'RS224','typ':'JWT'}",
 			payload:     defaultPayload,
 			project:     "vsign\\rsa2048-cert",
-			expected:    []string{"unexpected error from API/Sign: Algorithm choosen is not supported."},
+			expected:    []string{"unexpected error from API/Sign: Algorithm chosen is not supported."},
 		},
 		{
 			description: "Valid JWT signature using RS256",
@@ -52,7 +52,7 @@ func TestJWT(t *testing.T) {
 			header:      "{'alg':'ES224','typ':'JWT'}",
 			payload:     defaultPayload,
 			project:     "vsign\\p256-cert",
-			expected:    []string{"unexpected error from API/Sign: Algorithm choosen is not supported."},
+			expected:    []string{"unexpected error from API/Sign: Algorithm chosen is not supported."},
 		},
 		{
 			description: "Valid JWT signature using ES256",
@@ -80,7 +80,7 @@ func TestJWT(t *testing.T) {
 			header:      "{'alg':'EdDSA','typ':'JWT'}",
 			payload:     defaultPayload,
 			project:     "vsign\\ed25519",
-			expected:    []string{"unexpected error from API/Sign: Algorithm choosen is not supported."},
+			expected:    []string{"unexpected error from API/Sign: Algorithm chosen is not supported."},
 		},
 	}
 

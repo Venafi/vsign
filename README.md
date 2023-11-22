@@ -9,15 +9,18 @@ In addition, use **[Pull Requests](../../pulls)** to contribute actual bug fixes
 We welcome and appreciate all contributions. Got questions or want to discuss something with our team?
 **[Join us on Slack](https://join.slack.com/t/venafi-integrations/shared_invite/zt-i8fwc379-kDJlmzU8OiIQOJFSwiA~dg)**!_
 
-# VSign
+# vSign
 
-VSign is a Go library, SDK, and command line utility designed to secure the code signing process by using the
-[Venafi Trust Protection Platform](https://www.venafi.com/platform/trust-protection-platform)
+vSign is a Go library, SDK, and command line utility designed to secure the code signing process by using
+[Venafi CodeSign Protect](https://venafi.com/codesign-protect/)
+
+**IMPORTANT** - vSign was not designed as a substitute for existing industry-standard signing tools such as signtool, jarsigner, etc.
 
 ## Use Cases
-1. Generic artifact signing
-2. Notary v2 signing [plugin](https://coolsolutions.venafi.com/ivan.wallis/notation-venafi-csp) that supports Venafi CodeSign Protect 
-3. SDK (see simple use case [here](examples/simple-cli))
+1. Notation signing [plugin](https://github.com/venafi/notation-venafi-csp) that supports Venafi CodeSign Protect 
+2. Generic artifact signing
+3. PDF signing
+4. SDK (see simple use case [here](examples/simple-cli))
 
 ![](media/usecases.png)
 
@@ -101,11 +104,6 @@ certificate scope needed by some parts of vSign library for retrieving code sign
    ```
 * Refer to CodeSign Protect Developer guide for list of supported JWT signing algorithms
 
-### Cosign Image Signing
-   ```
-   vsign sign --config test/config.ini --image myorg/myapp:v1 --mechanism 64
-   ```
-
 ### Retrieve Access Token
    ```
    vsign getcred --url https://tpp.example.com --username test-cs-user --password MyPassword1234!
@@ -119,53 +117,7 @@ certificate scope needed by some parts of vSign library for retrieving code sign
    access_token: P1sfL7l4uCWwH/zMkJY7IA==
    ```
 
-### What ** is not ** production ready?
-
-While parts of `vsign` are stable, we are continuing to experiment and add new features.  The following feature set is not considered stable yet, but we are commiteted to stabilizing it over time!
-
-**Note: the following providers require online access to CodeSign Protect for both signing and verification**
-
-#### Jar Signing
-
-Inspired by the [Relic](https://github.com/sassoftware/relic) project
-
-```
-vsign sign --config test/config.ini --payload test/hello.jar --output-signature ~/hello-signed.jar --digest sha256 --mechanism 1 --sig-type jar
-```
-
-Supported flags are:
-
-`sections-only` - Don't compute hash of entire manifest
-`inline-signature` - Include .SF inside the signature block
-`apk-v2-present` - Add X-Android-APK-Signed header to signature
-
-#### Jar Signature Verification
-
-```
-vsign verify --config test/config.ini --payload test/hello.jar --signature test/hello-signed.jar --digest sha256
-```
-
-You can also use jarsigner to perform verification:
-
-```
-jarsigner -verify hello-signed.jar
-```
-
-#### XML Signing
-
-Inspired by the [Relic](https://github.com/sassoftware/relic) project
-
-```
-vsign sign --config test/config.ini --payload test/hello.xml --output-signature ~/hello-signed.xml --digest sha256 --mechanism 1
-```
-
-#### XML Signature Verification
-
-```
-vsign verify --config test/config.ini --payload test/hello.jar --signature test/hello-signed.jar --digest sha256
-```
-
-#### PDF Signing
+### PDF Signing
 
 Inspired by the [Digitorus pdfsign](https://github.com/digitorus/pdfsign) project
 
@@ -200,3 +152,6 @@ qpdf: operation succeeded with warnings
 ```
 vsign verify --config test/config.ini --payload test/dummy.pdf --signature test/dummy-signed.pdf --digest sha256
 ```
+### Other Use Cases
+
+Refer [here](EXPERIMENTAL.md) to use cases we are looking at officially supporting in the near future.

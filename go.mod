@@ -204,5 +204,5 @@ require (
 	golang.org/x/text v0.14.0
 	gopkg.in/ini.v1 v1.67.0
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	sigs.k8s.io/release-utils v0.7.6
+	sigs.k8s.io/release-utils v0.7.7
 )

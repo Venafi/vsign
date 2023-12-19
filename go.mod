@@ -12,8 +12,8 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/sigstore/sigstore v1.7.6
 	github.com/spf13/cobra v1.8.0
-	github.com/spf13/viper v1.18.1
-	golang.org/x/crypto v0.16.0
+	github.com/spf13/viper v1.18.2
+	golang.org/x/crypto v0.17.0
 )
 
 require (

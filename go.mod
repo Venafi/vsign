@@ -181,7 +181,7 @@ require (
 )
 
 require (
-	github.com/beevik/etree v1.3.0
+	github.com/beevik/etree v1.4.0
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/google/go-containerregistry v0.19.1
 	github.com/hashicorp/hcl v1.0.1-vault-5 // indirect

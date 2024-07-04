@@ -239,6 +239,42 @@ func TestSign(t *testing.T) {
 			publicKeyPath: "../../../../test/ed25519.pub",
 			expected:      nil,
 		},
+		{
+			description:   "Ml-Dsa44 Sha256 valid test",
+			project:       "vsign\\ml-dsa44",
+			payload:       sample_payload,
+			mechanism:     c.MlDsa,
+			digest:        "sha256",
+			publicKeyPath: "../../../../test/tbd.pub",
+			expected:      nil,
+		},
+		{
+			description:   "Slh-dsa-sha2-128s Sha256 valid test",
+			project:       "vsign\\slh-dsa-sha2-128s",
+			payload:       sample_payload,
+			mechanism:     c.SlhDsa,
+			digest:        "sha256",
+			publicKeyPath: "../../../../test/tbd.pub",
+			expected:      nil,
+		},
+		{
+			description:   "Slh-dsa-shake-256s Sha256 valid test",
+			project:       "vsign\\slh-dsa-shake-256s",
+			payload:       sample_payload,
+			mechanism:     c.SlhDsa,
+			digest:        "shake",
+			publicKeyPath: "../../../../test/tbd.pub",
+			expected:      nil,
+		},
+		{
+			description:   "Slh-dsa-shake-128f Sha256 valid test",
+			project:       "vsign\\slh-dsa-shake-128f",
+			payload:       sample_payload,
+			mechanism:     c.SlhDsa,
+			digest:        "shake",
+			publicKeyPath: "../../../../test/tbd.pub",
+			expected:      nil,
+		},
 	}
 
 	err := setTLSConfig()
@@ -276,10 +312,12 @@ func TestSign(t *testing.T) {
 				errs = append(errs, err.Error())
 				//require.Contains(t, tc.expected, []string{err.Error()})
 			}
-			err = c.Verify([]byte(tc.payload), sig, tc.digest, tc.publicKeyPath)
-			if err != nil {
-				errs = append(errs, err.Error())
-				require.Equal(t, tc.expected, errs)
+			if tc.mechanism != c.MlDsa && tc.mechanism != c.SlhDsa { // Need PQC golang crypto verification support
+				err = c.Verify([]byte(tc.payload), sig, tc.digest, tc.publicKeyPath)
+				if err != nil {
+					errs = append(errs, err.Error())
+					require.Equal(t, tc.expected, errs)
+				}
 			}
 
 		})

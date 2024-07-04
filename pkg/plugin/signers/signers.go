@@ -20,6 +20,7 @@ package signers
 
 import (
 	"crypto"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"io"
@@ -36,7 +37,6 @@ import (
 	"github.com/sassoftware/relic/v7/lib/x509tools"
 	"github.com/venafi/vsign/cmd/vsign/cli/options"
 	"github.com/venafi/vsign/pkg/provider/audit"
-	"github.com/venafi/vsign/pkg/provider/certloader"
 	"github.com/venafi/vsign/pkg/provider/magic"
 	"github.com/venafi/vsign/pkg/provider/pkcs9"
 )
@@ -59,7 +59,7 @@ type Signer struct {
 	// Transform a file into a stream to upload
 	Transform func(*os.File, SignOpts) (Transformer, error)
 	// Sign a input stream (possibly transformed) and return a mode-specific result blob
-	Sign func(io.Reader, *certloader.Certificate, SignOpts) ([]byte, error)
+	Sign func(io.Reader, []*x509.Certificate, SignOpts) ([]byte, error)
 	// Final step to run on the client after the file is patched
 	Fixup func(*os.File) error
 

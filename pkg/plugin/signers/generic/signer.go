@@ -3,6 +3,7 @@ package generic
 // Sign Java archives
 
 import (
+	"crypto/x509"
 	"fmt"
 	"io"
 	"os"
@@ -11,7 +12,6 @@ import (
 	c "github.com/venafi/vsign/pkg/crypto"
 	"github.com/venafi/vsign/pkg/endpoint"
 	"github.com/venafi/vsign/pkg/plugin/signers"
-	"github.com/venafi/vsign/pkg/provider/certloader"
 	"github.com/venafi/vsign/pkg/provider/magic"
 )
 
@@ -28,7 +28,7 @@ func init() {
 }
 
 // sign a generic blob
-func sign(r io.Reader, cert *certloader.Certificate, opts signers.SignOpts) ([]byte, error) {
+func sign(r io.Reader, certs []*x509.Certificate, opts signers.SignOpts) ([]byte, error) {
 
 	var data []byte
 	var err error

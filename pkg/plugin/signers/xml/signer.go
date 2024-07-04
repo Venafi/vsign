@@ -19,6 +19,7 @@ package xml
 // Sign Java archives
 
 import (
+	"crypto/x509"
 	"fmt"
 	"io"
 	"os"
@@ -27,7 +28,6 @@ import (
 	"github.com/venafi/vsign/cmd/vsign/cli/options"
 	c "github.com/venafi/vsign/pkg/crypto"
 	"github.com/venafi/vsign/pkg/plugin/signers"
-	"github.com/venafi/vsign/pkg/provider/certloader"
 	"github.com/venafi/vsign/pkg/provider/magic"
 	"github.com/venafi/vsign/pkg/provider/xmldsig"
 )
@@ -51,7 +51,7 @@ func testpath(string) bool {
 }
 
 // sign a manifest and return the PKCS#7 blob
-func sign(r io.Reader, cert *certloader.Certificate, opts signers.SignOpts) ([]byte, error) {
+func sign(r io.Reader, certs []*x509.Certificate, opts signers.SignOpts) ([]byte, error) {
 
 	experimental := figure.NewFigure("experimental: XML signing", "", true)
 	experimental.Print()
@@ -111,6 +111,10 @@ func verify(f *os.File, opts options.VerifyOptions, tppOpts signers.VerifyOpts) 
 	}
 
 	validator.Certificates, err = c.ParseCertificates(env.CertificateChainData)
+
+	if err != nil {
+		return fmt.Errorf("error with certificate chain")
+	}
 
 	_, err = validator.ValidateReferences()
 	if err != nil {

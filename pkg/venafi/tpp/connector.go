@@ -226,7 +226,7 @@ func (c *Connector) GetEnvironment() (env endpoint.Environment, err error) {
 		}
 
 		if version > 22 {
-			certReq := getObjectsRequest{KeyID: env.KeyID, IncludeChain: true}
+			certReq := getObjectsRequest{KeyID: env.KeyID, IncludeChain: true, Experimental: true}
 			statusCode, status, body, err = c.request("POST", urlResourceCodeSignGetObjects, certReq)
 			if err != nil {
 				return endpoint.Environment{}, err
@@ -271,9 +271,9 @@ func (c *Connector) GetEnvironmentKeyAlgorithm() (environmentKeyAlg string, err 
 		return "", fmt.Errorf("missing environment keyalgorithm field for %s", environment.CertificateDN)
 	}
 
-	if err != nil {
+	/*if err != nil {
 		return "", err
-	}
+	}*/
 	return environment.KeyAlgorithm, nil
 
 }
@@ -296,8 +296,13 @@ func (c *Connector) GetWKSPublicKeyBytes(email string) (pub []byte, err error) {
 func (c *Connector) Sign(so *endpoint.SignOption) (sig []byte, err error) {
 	var signReq apiSignRequest
 	switch so.Mechanism {
-	case crypto.RsaPkcs, crypto.EcDsa:
+	case crypto.RsaPkcs, crypto.EcDsa, crypto.MlDsa, crypto.SlhDsa:
 		hasher, _, prefix := crypto.GetHasher(so.DigestAlg)
+
+		//Experimental SHA3/SHAKE support
+		if (so.Mechanism == crypto.RsaPkcs || so.Mechanism == crypto.EcDsa) && so.DigestAlg == "shake" {
+			return nil, fmt.Errorf("SHA3/SHAKE experimental support only for MlDsa or SlhDsa")
+		}
 		payload := []byte(so.Payload)
 		if so.B64Flag {
 			payload, err = crypto.DecodeBase64(string(so.Payload))
@@ -318,8 +323,10 @@ func (c *Connector) Sign(so *endpoint.SignOption) (sig []byte, err error) {
 		var mech = 0
 		if so.Mechanism == crypto.EcDsa {
 			mech = crypto.GetECClientMechanism(so.DigestAlg)
-		} else {
+		} else if so.Mechanism == crypto.RsaPkcs {
 			mech = crypto.GetRSAClientMechanism(so.DigestAlg)
+		} else {
+			mech = 0
 		}
 		//job := defaultClientID + "-job-" + randstr.Hex(10)
 		signReq = apiSignRequest{ClientInfo: ClientInfo{endpoint.DefaultClientID, "0.1"}, ProcessInfo: ProcessInfo{endpoint.DefaultClientID}, KeyId: so.KeyID, ClientMechanism: mech, Mechanism: so.Mechanism, Data: crypto.EncodeBase64(hv)}

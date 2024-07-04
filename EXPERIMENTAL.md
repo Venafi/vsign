@@ -4,6 +4,28 @@ While parts of `vsign` are stable, we are continuing to experiment and add new f
 
 **Note: the following providers require online access to CodeSign Protect for both signing and verification**
 
+#### PQC Experimental Signing Support
+
+ML-DSA44 example
+
+```
+vsign sign --config test/config.ini --output-signature test/output.sig --payload test/data.txt --mechanism 2147483650
+```
+
+SLH-DSA-SHA2-256S example
+
+```
+vsign sign --config test/config.ini --output-signature test/output.sig --payload test/data.txt --mechanism 2147483652
+```
+
+SLH-DSA-SHAKE-256S example
+
+```
+vsign sign --config test/config.ini --output-signature test/output.sig --payload test/data.txt --mechanism 2147483652 --digest shake
+```
+
+**Note: PQC verification not currently supported given experimental state of algorithms and no official library support**
+
 #### Jar Signing
 
 Inspired by the [Relic](https://github.com/sassoftware/relic) project

@@ -18,12 +18,6 @@ import (
 	"golang.org/x/crypto/sha3"
 )
 
-type alg struct {
-	Name      string
-	Mechanism int
-	Size      int //bytes
-}
-
 type PSSMechanism struct {
 	Mechanism int
 	MGF       int
@@ -69,25 +63,6 @@ const Mgf1Sha512 = 4
 // Experimental PQC support
 const MlDsa = 2147483650
 const SlhDsa = 2147483652
-
-func getSupportedMechanisms() []alg {
-	return []alg{
-		{Name: "RsaPkcs", Mechanism: RsaPkcs, Size: 32},
-		{Name: "EcDsaSha256", Mechanism: EcDsaSha256, Size: 64},
-		{Name: "EcDsaSha384", Mechanism: EcDsaSha384, Size: 96},
-		{Name: "EcDsaSha512", Mechanism: EcDsaSha512, Size: 132},
-		{Name: "EdDsa", Mechanism: EdDsa, Size: 64},
-	}
-}
-
-func getMechanismSize(mechanism int) int {
-	for _, m := range getSupportedMechanisms() {
-		if m.Mechanism == mechanism {
-			return m.Size
-		}
-	}
-	return 0
-}
 
 func GetPSSMechanism(digest string) PSSMechanism {
 	switch digest {
@@ -222,10 +197,6 @@ func Verify(data []byte, signature []byte, digest string, publicKeyPath string) 
 			return fmt.Errorf("failed verification")
 		}
 	case ed25519.PublicKey:
-		/*err := ed25519.VerifyWithOptions(publicKey, data, signature, &ed25519.Options{})
-		if err != nil {
-			return fmt.Errorf("failed verification: %v", err.Error())
-		}*/
 		if !ed25519.Verify(publicKey, data, signature) {
 			return fmt.Errorf("failed verification")
 		}

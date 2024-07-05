@@ -167,6 +167,7 @@ type certificateRetrieveResponse struct {
 type getObjectsRequest struct {
 	KeyID        string `json:"KeyId,omitempty"`
 	IncludeChain bool   `json:"IncludeChains,omitempty"`
+	Experimental bool   `json:"Experimental,omitempty"`
 }
 
 type Certificate struct {

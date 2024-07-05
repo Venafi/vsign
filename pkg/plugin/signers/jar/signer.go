@@ -20,6 +20,7 @@ package jar
 
 import (
 	"archive/zip"
+	"crypto/x509"
 	"fmt"
 	"io"
 	"os"
@@ -50,9 +51,15 @@ func init() {
 }
 
 // sign a manifest and return the PKCS#7 blob
-func sign(r io.Reader, cert *certloader.Certificate, opts signers.SignOpts) ([]byte, error) {
+func sign(r io.Reader, certs []*x509.Certificate, opts signers.SignOpts) ([]byte, error) {
 	experimental := figure.NewFigure("experimental: Jar signing", "", true)
 	experimental.Print()
+
+	if certs == nil {
+		return nil, fmt.Errorf("certificate environment must be used")
+	}
+
+	var cert certloader.Certificate = certloader.Certificate{Leaf: certs[0], Certificates: certs}
 
 	argSectionsOnly := opts.Flags.GetBool("sections-only")
 	argInlineSignature := opts.Flags.GetBool("inline-signature")
@@ -62,7 +69,7 @@ func sign(r io.Reader, cert *certloader.Certificate, opts signers.SignOpts) ([]b
 	if err != nil {
 		return nil, err
 	}
-	patch, ts, err := digest.Sign(opts.Context(), cert, opts.KeyLabel, argSectionsOnly, argInlineSignature, argApkV2, opts.TPP)
+	patch, ts, err := digest.Sign(opts.Context(), &cert, opts.KeyLabel, argSectionsOnly, argInlineSignature, argApkV2, opts.TPP)
 	if err != nil {
 		return nil, err
 	}

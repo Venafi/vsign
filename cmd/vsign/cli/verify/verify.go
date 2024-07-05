@@ -86,7 +86,7 @@ func VerifyCmd(ctx context.Context, verifyOpts options.VerifyOptions, args []str
 		mod = signers.ByFileName(verifyOpts.SignaturePath)
 	}
 	if mod == nil {
-		return fmt.Errorf("unknown filetype: %v", err.Error())
+		return fmt.Errorf("unknown filetype")
 	}
 
 	if mod.VerifyStream != nil {

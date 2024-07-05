@@ -34,7 +34,6 @@ import (
 	"github.com/sassoftware/relic/v7/cmdline/shared"
 	"github.com/venafi/vsign/pkg/plugin/signers"
 	"github.com/venafi/vsign/pkg/provider/audit"
-	"github.com/venafi/vsign/pkg/provider/certloader"
 	cp "github.com/venafi/vsign/pkg/provider/cosign"
 )
 
@@ -108,9 +107,11 @@ func SignCmd(ctx context.Context, fs *pflag.FlagSet, signOpts options.SignOption
 			return fmt.Errorf(err.Error())
 		}
 
-		if cp.WriteSignatures(ctx, signOpts.ImageRef, data, sig, c.EncodeBase64(sig)) != nil {
+		err = cp.WriteSignatures(ctx, signOpts.ImageRef, data, sig, c.EncodeBase64(sig))
+		if err != nil {
 			return fmt.Errorf(err.Error())
 		}
+
 		fmt.Fprintln(os.Stderr, "Pushing signature to: ", signOpts.ImageRef)
 		return nil
 	}
@@ -170,8 +171,8 @@ func SignCmd(ctx context.Context, fs *pflag.FlagSet, signOpts options.SignOption
 	if err != nil {
 		return shared.Fail(err)
 	}
-	var cert certloader.Certificate = certloader.Certificate{Leaf: certs[0], Certificates: certs}
-	blob, err := mod.Sign(stream, &cert, *opts)
+
+	blob, err := mod.Sign(stream, certs, *opts)
 	if err != nil {
 		return shared.Fail(err)
 	}

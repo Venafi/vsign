@@ -14,13 +14,9 @@ import (
 	"hash"
 	"math/big"
 	"os"
-)
 
-type alg struct {
-	Name      string
-	Mechanism int
-	Size      int //bytes
-}
+	"golang.org/x/crypto/sha3"
+)
 
 type PSSMechanism struct {
 	Mechanism int
@@ -64,24 +60,9 @@ const Mgf1Sha256 = 2
 const Mgf1Sha384 = 3
 const Mgf1Sha512 = 4
 
-func getSupportedMechanisms() []alg {
-	return []alg{
-		{Name: "RsaPkcs", Mechanism: RsaPkcs, Size: 32},
-		{Name: "EcDsaSha256", Mechanism: EcDsaSha256, Size: 64},
-		{Name: "EcDsaSha384", Mechanism: EcDsaSha384, Size: 96},
-		{Name: "EcDsaSha512", Mechanism: EcDsaSha512, Size: 132},
-		{Name: "EdDsa", Mechanism: EdDsa, Size: 64},
-	}
-}
-
-func getMechanismSize(mechanism int) int {
-	for _, m := range getSupportedMechanisms() {
-		if m.Mechanism == mechanism {
-			return m.Size
-		}
-	}
-	return 0
-}
+// Experimental PQC support
+const MlDsa = 2147483650
+const SlhDsa = 2147483652
 
 func GetPSSMechanism(digest string) PSSMechanism {
 	switch digest {
@@ -112,6 +93,8 @@ func GetHasher(digest string) (hash.Hash, crypto.Hash, []byte) {
 		return crypto.Hash.New(crypto.SHA384), crypto.SHA384, []byte{0x30, 0x41, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x02, 0x05, 0x00, 0x04, 0x30}
 	case "sha512":
 		return crypto.Hash.New(crypto.SHA512), crypto.SHA512, []byte{0x30, 0x51, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x03, 0x05, 0x00, 0x04, 0x40}
+	case "shake":
+		return sha3.New256(), crypto.SHA256, nil
 	default:
 		return crypto.Hash.New(crypto.SHA256), crypto.SHA256, []byte{0x30, 0x31, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x01, 0x05, 0x00, 0x04, 0x20}
 	}
@@ -161,9 +144,11 @@ func EncodeASN1(rawBase64sig string, mechanism int) ([]byte, error) {
 	}
 
 	switch mechanism {
-	case RsaPkcs, RsaSha1, RsaSha256, RsaSha384, RsaSha512, RsaPkcsPss, RsaPssSha1, RsaPssSha256, RsaPssSha384, RsaPssSha512:
+	case RsaPkcs, EdDsa, RsaSha1, RsaSha256, RsaSha384, RsaSha512, RsaPkcsPss, RsaPssSha1, RsaPssSha256, RsaPssSha384, RsaPssSha512:
 		return sigbytes, nil
-	case EcDsa, EcDsaSha1, EcDsaSha224, EcDsaSha256, EcDsaSha384, EcDsaSha512, EdDsa:
+	case MlDsa, SlhDsa: // Experimental PQC support
+		return sigbytes, nil
+	case EcDsa, EcDsaSha1, EcDsaSha224, EcDsaSha256, EcDsaSha384, EcDsaSha512:
 		r := new(big.Int).SetBytes(sigbytes[0 : len(sigbytes)/2])
 		s := new(big.Int).SetBytes(sigbytes[len(sigbytes)/2:])
 		components := sig{r, s}
@@ -193,7 +178,7 @@ func Verify(data []byte, signature []byte, digest string, publicKeyPath string) 
 
 	pemBytes, err := os.ReadFile(publicKeyPath)
 	if err != nil {
-		return err
+		return fmt.Errorf("public key not found: %v", err.Error())
 	}
 
 	block, _ := pem.Decode(pemBytes)
@@ -211,18 +196,19 @@ func Verify(data []byte, signature []byte, digest string, publicKeyPath string) 
 		if !ecdsa.VerifyASN1(publicKey, hasher.Sum(nil), signature) {
 			return fmt.Errorf("failed verification")
 		}
-	case *ed25519.PublicKey:
-		if !ed25519.Verify(*publicKey, data, signature) {
+	case ed25519.PublicKey:
+		if !ed25519.Verify(publicKey, data, signature) {
 			return fmt.Errorf("failed verification")
 		}
 	case *rsa.PublicKey:
-
 		if err := rsa.VerifyPKCS1v15(publicKey, hashAlgo, hasher.Sum(nil), signature); err != nil {
 			er1 := rsa.VerifyPSS(publicKey, hashAlgo, hasher.Sum(nil), signature, nil)
 			if er1 != nil {
 				return fmt.Errorf("failed verification: %v", er1.Error())
 			}
 		}
+	default:
+		return fmt.Errorf("invalid mechanism and/or currently not supported")
 	}
 
 	//Verification successful

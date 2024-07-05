@@ -58,8 +58,14 @@ func testpath(string) bool {
 }
 
 // sign a manifest and return the PKCS#7 blob
-func sign(r io.Reader, cert *certloader.Certificate, opts signers.SignOpts) ([]byte, error) {
+func sign(r io.Reader, certs []*x509.Certificate, opts signers.SignOpts) ([]byte, error) {
 	var err error
+
+	if certs == nil {
+		return nil, fmt.Errorf("certificate environment must be used")
+	}
+
+	var cert certloader.Certificate = certloader.Certificate{Leaf: certs[0], Certificates: certs}
 
 	certificate_chains := make([][]*x509.Certificate, 0)
 	certificate_chains = append(certificate_chains, cert.Chain())

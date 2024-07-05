@@ -169,11 +169,11 @@ func EncodeASN1(rawBase64sig string, mechanism int) ([]byte, error) {
 	}
 
 	switch mechanism {
-	case RsaPkcs, RsaSha1, RsaSha256, RsaSha384, RsaSha512, RsaPkcsPss, RsaPssSha1, RsaPssSha256, RsaPssSha384, RsaPssSha512:
+	case RsaPkcs, EdDsa, RsaSha1, RsaSha256, RsaSha384, RsaSha512, RsaPkcsPss, RsaPssSha1, RsaPssSha256, RsaPssSha384, RsaPssSha512:
 		return sigbytes, nil
 	case MlDsa, SlhDsa: // Experimental PQC support
 		return sigbytes, nil
-	case EcDsa, EcDsaSha1, EcDsaSha224, EcDsaSha256, EcDsaSha384, EcDsaSha512, EdDsa:
+	case EcDsa, EcDsaSha1, EcDsaSha224, EcDsaSha256, EcDsaSha384, EcDsaSha512:
 		r := new(big.Int).SetBytes(sigbytes[0 : len(sigbytes)/2])
 		s := new(big.Int).SetBytes(sigbytes[len(sigbytes)/2:])
 		components := sig{r, s}
@@ -221,12 +221,15 @@ func Verify(data []byte, signature []byte, digest string, publicKeyPath string) 
 		if !ecdsa.VerifyASN1(publicKey, hasher.Sum(nil), signature) {
 			return fmt.Errorf("failed verification")
 		}
-	case *ed25519.PublicKey:
-		if !ed25519.Verify(*publicKey, data, signature) {
+	case ed25519.PublicKey:
+		/*err := ed25519.VerifyWithOptions(publicKey, data, signature, &ed25519.Options{})
+		if err != nil {
+			return fmt.Errorf("failed verification: %v", err.Error())
+		}*/
+		if !ed25519.Verify(publicKey, data, signature) {
 			return fmt.Errorf("failed verification")
 		}
 	case *rsa.PublicKey:
-
 		if err := rsa.VerifyPKCS1v15(publicKey, hashAlgo, hasher.Sum(nil), signature); err != nil {
 			er1 := rsa.VerifyPSS(publicKey, hashAlgo, hasher.Sum(nil), signature, nil)
 			if er1 != nil {

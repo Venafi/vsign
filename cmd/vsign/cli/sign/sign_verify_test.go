@@ -203,7 +203,7 @@ func TestSign(t *testing.T) {
 			publicKeyPath: "../../../../test/p256-cert.pub",
 			expected:      nil,
 		},
-		/*{
+		{
 			description:   "EdDsa Sha1 valid test",
 			project:       "vsign\\ed25519",
 			payload:       sample_payload,
@@ -238,7 +238,7 @@ func TestSign(t *testing.T) {
 			digest:        "sha512",
 			publicKeyPath: "../../../../test/ed25519.pub",
 			expected:      nil,
-		},*/
+		},
 		{
 			description:   "Ml-Dsa44 Sha256 valid test",
 			project:       "vsign\\ml-dsa44",

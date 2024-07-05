@@ -1,0 +1,13 @@
+LoadConfiguration: Reading /Users/ivan.wallis/.venafipkcs11config for configuration
+User : Auth Server Url
+User : Hsm Server Url
+User : Timestamping Service Url
+User : GPG Public Key Server Url
+User : Client Distribution Url
+User Access Token configured
+User Refresh Token configured
+User grant expires in 66 days (Unixtime 1725912459)
+LoadConfiguration: Reading /Users/ivan.wallis/.venafipkcs11config for configuration
+Using user CA PEM certificate file /Users/ivan.wallis/.libhsmtrust
+LibHsmPopulateCache for user cache called
+InitializeCache for user cache called

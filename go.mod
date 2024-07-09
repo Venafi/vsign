@@ -182,7 +182,7 @@ require (
 require (
 	github.com/beevik/etree v1.4.0
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
-	github.com/google/go-containerregistry v0.19.2
+	github.com/google/go-containerregistry v0.20.0
 	github.com/hashicorp/hcl v1.0.1-vault-5 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect

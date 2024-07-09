@@ -182,7 +182,7 @@ require (
 require (
 	github.com/beevik/etree v1.4.0
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
-	github.com/google/go-containerregistry v0.19.2
+	github.com/google/go-containerregistry v0.20.0
 	github.com/hashicorp/hcl v1.0.1-vault-5 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
@@ -201,5 +201,5 @@ require (
 	golang.org/x/text v0.16.0
 	gopkg.in/ini.v1 v1.67.0
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	sigs.k8s.io/release-utils v0.8.2
+	sigs.k8s.io/release-utils v0.8.3
 )

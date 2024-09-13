@@ -1,6 +1,7 @@
 module github.com/venafi/vsign
 
 go 1.22.5
+toolchain go1.23.1
 
 require (
 	github.com/common-nighthawk/go-figure v0.0.0-20210622060536-734e95fb86be
@@ -200,5 +201,5 @@ require (
 	golang.org/x/text v0.18.0
 	gopkg.in/ini.v1 v1.67.0
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	sigs.k8s.io/release-utils v0.8.4
+	sigs.k8s.io/release-utils v0.8.5
 )

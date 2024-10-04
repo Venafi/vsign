@@ -54,7 +54,7 @@ You can either use environment variables or a configuration file to customize in
 VSIGN_URL = "https://tpp.example.com"
 VSIGN_TOKEN = "xxx"
 VSIGN_JWT = "xxx"
-VSIGN_PROJECT = "Project\\Environment"
+VSIGN_PROJECT = "Project\Environment"
 VSIGN_TRUST_BUNDLE = "/my/path/chain.pem"
 ```
 

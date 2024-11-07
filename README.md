@@ -64,7 +64,7 @@ VSIGN_TRUST_BUNDLE = "/my/path/chain.pem"
 tpp_url = "https://tpp.example.com" 
 access_token = "xxx"
 jwt = "xxx"
-tpp_project = "Project\\Environment"
+tpp_project = "Project\Environment"
 trust_bundle = "/my/path/chain.pem"
 ```
 

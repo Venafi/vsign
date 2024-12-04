@@ -33,4 +33,5 @@ jobs:
         with:
           artifacts: "vsign-*,vsign.-*sha256"
           bodyFile: "CHANGELOG.md"
+          prerelease: true
            

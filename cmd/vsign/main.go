@@ -16,13 +16,13 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"strings"
 
-	"github.com/venafi/vsign/cmd/vsign/cli"
-
 	// Initialize providers
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+	"github.com/venafi/vsign/cmd/vsign/cli"
 	_ "github.com/venafi/vsign/pkg/plugin/signers/generic"
 	_ "github.com/venafi/vsign/pkg/plugin/signers/jar"
 	_ "github.com/venafi/vsign/pkg/plugin/signers/pdf"
@@ -59,6 +59,8 @@ func main() {
 	}
 
 	if err := cli.New().Execute(); err != nil {
-		log.Fatalf("error during command execution: %v", err)
+		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+		log.Fatal().Err(err).Msg("")
+		//log.Fatalf("error during command execution: %v", err)
 	}
 }

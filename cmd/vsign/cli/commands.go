@@ -18,19 +18,22 @@ package cli
 import (
 	"os"
 
-	"github.com/google/go-containerregistry/pkg/logs"
-	"github.com/pkg/errors"
+	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/release-utils/version"
 
-	"github.com/venafi/vsign/cmd/vsign/cli/options"
 	"github.com/venafi/vsign/cmd/vsign/cli/shared"
 	"github.com/venafi/vsign/pkg/plugin/signers"
 )
 
-var (
+/*var (
 	ro = &options.RootOptions{}
-)
+)*/
+
+var rootOpts struct {
+	verbosity string
+	logopts   []string
+}
 
 func New() *cobra.Command {
 	var (
@@ -41,21 +44,32 @@ func New() *cobra.Command {
 		Use:               "vsign",
 		DisableAutoGenTag: true,
 		SilenceUsage:      true, // Don't show usage on errors
+		SilenceErrors:     true,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			if ro.OutputFile != "" {
-				var err error
-				out, err = os.Create(ro.OutputFile)
-				if err != nil {
-					return errors.Wrapf(err, "Error creating output file %s", ro.OutputFile)
-				}
-				stdout = os.Stdout
-				os.Stdout = out // TODO: don't do this.
-				cmd.SetOut(out)
+
+			/*if !cmd.Flags().Changed("verbosity") {
+				zerolog.SetGlobalLevel(zerolog.Disabled)
+			}*/
+
+			switch rootOpts.verbosity {
+			case "trace":
+				zerolog.SetGlobalLevel(zerolog.TraceLevel)
+			case "debug":
+				zerolog.SetGlobalLevel(zerolog.DebugLevel)
+			case "info":
+				zerolog.SetGlobalLevel(zerolog.InfoLevel)
+			case "warn":
+				zerolog.SetGlobalLevel(zerolog.WarnLevel)
+			case "error":
+				zerolog.SetGlobalLevel(zerolog.ErrorLevel)
+			case "fatal":
+				zerolog.SetGlobalLevel(zerolog.FatalLevel)
+			case "panic":
+				zerolog.SetGlobalLevel(zerolog.PanicLevel)
+			default:
+				zerolog.SetGlobalLevel(zerolog.InfoLevel)
 			}
 
-			if ro.Verbose {
-				logs.Debug.SetOutput(os.Stderr)
-			}
 			return nil
 		},
 		PersistentPostRun: func(cmd *cobra.Command, args []string) {
@@ -65,7 +79,14 @@ func New() *cobra.Command {
 			os.Stdout = stdout
 		},
 	}
-	ro.AddFlags(cmd)
+
+	cmd.PersistentFlags().StringVarP(&rootOpts.verbosity, "verbosity", "v", zerolog.InfoLevel.String(), "Log level (trace, debug, info, warn, error, fatal, panic)")
+	//cmd.PersistentFlags().StringArrayVar(&rootOpts.logopts, "logopt", []string{}, "Log options")
+	cmd.RegisterFlagCompletionFunc("verbosity", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return []string{"trace", "debug", "info", "warn", "error", "fatal", "panic"}, cobra.ShellCompDirectiveNoFileComp
+	})
+
+	//ro.AddFlags(cmd)
 
 	// Add sub-commands.
 

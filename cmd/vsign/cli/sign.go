@@ -16,7 +16,6 @@
 package cli
 
 import (
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/venafi/vsign/cmd/vsign/cli/options"
 	"github.com/venafi/vsign/cmd/vsign/cli/sign"
@@ -35,7 +34,8 @@ func Sign() *cobra.Command {
 
 			if err := sign.SignCmd(cmd.Context(), cmd.Flags(), *o, args); err != nil {
 
-				return errors.Wrapf(err, "signing failed")
+				//return errors.Wrapf(err, "signing failed")
+				return err
 			}
 			return nil
 		},

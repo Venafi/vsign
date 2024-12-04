@@ -88,6 +88,8 @@ cross:
 		$(foreach GOARCH, $(ARCHITECTURES), $(shell export GOOS=$(GOOS); export GOARCH=$(GOARCH); \
 	go build -trimpath -ldflags "$(LDFLAGS)" -o vsign-$(GOOS)-$(GOARCH) ./cmd/vsign; \
 	shasum -a 256 vsign-$(GOOS)-$(GOARCH) > vsign-$(GOOS)-$(GOARCH).sha256 ))) \
+	env GOOS=darwin GOARCH=arm64 go build -trimpath -ldflags "$(LDFLAGS)" -o vsign-darwin-arm64 ./cmd/vsign
+	shasum -a 256 vsign-darwin-arm64 > vsign-darwin-arm64.sha256
 
 #####################
 # lint / test section

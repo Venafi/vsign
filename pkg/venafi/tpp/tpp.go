@@ -8,11 +8,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net"
 	"net/http"
 	"time"
 
+	"github.com/rs/zerolog/log"
 	c "github.com/venafi/vsign/pkg/crypto"
 	"github.com/venafi/vsign/pkg/endpoint"
 )
@@ -238,21 +238,21 @@ func (c *Connector) request(method string, resource urlResource, data interface{
 
 	defer res.Body.Close()
 	body, err = io.ReadAll(res.Body)
-	// Do not enable trace in production
-	trace := false // IMPORTANT: sensitive information can be diclosured
-	// I hope you know what are you doing
-	if trace {
-		log.Println("#################")
-		log.Printf("Headers are:\n%s", r.Header)
-		if method == "POST" || method == "PUT" {
-			log.Printf("JSON sent for %s\n%s\n", url, string(b))
-		} else {
-			log.Printf("%s request sent to %s\n", method, url)
-		}
-		log.Printf("Response:\n%s\n", string(body))
-	} else if c.verbose {
-		log.Printf("Got %s status for %s %s\n", statusText, method, url)
+
+	//
+	// Limit trace level logging in production as sensitive information may be disclosed
+	//
+
+	log.Trace().Msgf("Headers are:\n%s", r.Header)
+	if method == "POST" || method == "PUT" {
+		log.Trace().Msgf("JSON sent for %s\n%s\n", url, string(b))
+	} else {
+		log.Trace().Msgf("%s request sent to %s\n", method, url)
 	}
+	log.Trace().Msgf("Response:\n%s\n", string(body))
+
+	log.Trace().Msgf("Got %s status for %s %s\n", statusText, method, url)
+
 	return
 }
 
@@ -293,6 +293,7 @@ func (c *Connector) getHTTPClient() *http.Client {
 func parseEnvironmentResult(httpStatusCode int, httpStatus string, body []byte) (endpoint.Environment, error) {
 	switch httpStatusCode {
 	case http.StatusOK, http.StatusCreated:
+		log.Trace().Msgf(string(urlResourceCodeSignGetEnvironment)+" response:\n%s\n", string(body))
 		reqData, err := parseEnvironmentData(body)
 		if reqData.Error != "" {
 			return endpoint.Environment{}, fmt.Errorf(reqData.Error)
@@ -312,6 +313,7 @@ func parseEnvironmentResult(httpStatusCode int, httpStatus string, body []byte) 
 func parseGetObjectsResult(httpStatusCode int, httpStatus string, body []byte) ([][]byte, error) {
 	switch httpStatusCode {
 	case http.StatusOK, http.StatusCreated:
+		log.Trace().Msgf(string(urlResourceCodeSignGetObjects)+" response:\n%s\n", string(body))
 		reqData, err := parseGetObjectsData(body)
 		if err != nil {
 			return nil, err
@@ -340,6 +342,7 @@ func parseGetObjectsResult(httpStatusCode int, httpStatus string, body []byte) (
 func parseCertificateRetrievalResult(httpStatusCode int, httpStatus string, body []byte) ([][]byte, error) {
 	switch httpStatusCode {
 	case http.StatusOK, http.StatusCreated:
+		log.Trace().Msgf(string(urlResourceCertificateRetrieve)+" response:\n%s\n", string(body))
 		reqData, err := parseCertificateRetrievalData(body)
 		if err != nil {
 			return nil, err
@@ -392,6 +395,7 @@ func parseCertificateRetrievalData(b []byte) (data certificateRetrieveResponse, 
 func parseSignResult(httpStatusCode int, httpStatus string, body []byte) (string, error) {
 	switch httpStatusCode {
 	case http.StatusOK, http.StatusCreated:
+		log.Trace().Msgf(string(urlResourceCodeSignAPISign)+" response:\n%s\n", string(body))
 		reqData, err := parseSignData(body)
 		if reqData.Error != "" {
 			return "", fmt.Errorf("unexpected error from API/Sign: %s", reqData.Error)
@@ -418,6 +422,7 @@ func parseJWKSData(b []byte) (data jwksLookupResponse, err error) {
 func parseJWKSLookupResult(httpStatusCode int, httpStatus string, body []byte) (string, error) {
 	switch httpStatusCode {
 	case http.StatusOK, http.StatusCreated:
+		log.Trace().Msgf(string(urlResourceCodeSignJWKSLookup)+" response:\n%s\n", string(body))
 		reqData, err := parseJWKSData(body)
 		if err != nil {
 			return "", err
@@ -438,6 +443,7 @@ func parsePKSLookupResult(httpStatusCode int, httpStatus string, body []byte) ([
 		if err != nil {
 			return "", err
 		}*/
+		log.Trace().Msgf(string(urlResourceCodeSignPKSLookup)+" response:\n%s\n", string(body))
 		return body, nil
 	case http.StatusNotFound:
 		return nil, fmt.Errorf("not found")

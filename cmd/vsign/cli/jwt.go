@@ -16,7 +16,6 @@
 package cli
 
 import (
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/venafi/vsign/cmd/vsign/cli/jwt"
 	"github.com/venafi/vsign/cmd/vsign/cli/options"
@@ -35,7 +34,8 @@ func JWT() *cobra.Command {
 
 			if err := jwt.SignJWTCmd(cmd.Context(), *o, args); err != nil {
 
-				return errors.Wrapf(err, "signing failed")
+				//return errors.Wrapf(err, "signing failed")
+				return err
 			}
 			return nil
 		},

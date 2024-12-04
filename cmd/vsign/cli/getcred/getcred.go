@@ -19,10 +19,11 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/venafi/vsign/cmd/vsign/cli/options"
 	"github.com/venafi/vsign/pkg/endpoint"
 	"github.com/venafi/vsign/pkg/vsign"
@@ -32,7 +33,7 @@ const UtilityShortName string = "vSign"
 
 var (
 	tlsConfig tls.Config
-	logger    = log.New(os.Stderr, UtilityShortName+": ", log.LstdFlags)
+	//logger    = log.New(os.Stderr, UtilityShortName+": ", log.LstdFlags)
 )
 
 func setTLSConfig() error {
@@ -54,14 +55,14 @@ func GetCredCmd(ctx context.Context, credOpts options.GetCredOptions, args []str
 	if (credOpts.Username != "" && credOpts.Password != "") || credOpts.JWT != "" {
 		cfg, err := vsign.BuildConfigWithAuth(ctx, credOpts.Url, &endpoint.Authentication{User: credOpts.Username, Password: credOpts.Password, JWT: credOpts.JWT}, credOpts.TrustBundle)
 		if err != nil {
-			logger.Printf("error building config: %s", err)
-			return fmt.Errorf("error building config")
+			return fmt.Errorf("error building config: %s", err.Error())
 		}
 		connector, err := vsign.NewClient(&cfg)
 		if err != nil {
-			logger.Printf("Unable to connect to %s: %s", cfg.ConnectorType, err)
+			return fmt.Errorf("unable to connect to %s: %s", cfg.ConnectorType, err)
 		} else {
-			logger.Printf("Successfully connected to %s", cfg.ConnectorType)
+			log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, NoColor: true})
+			log.Info().Msgf("Successfully connected to %s", cfg.ConnectorType)
 		}
 
 		auth := &endpoint.Authentication{
@@ -73,10 +74,11 @@ func GetCredCmd(ctx context.Context, credOpts options.GetCredOptions, args []str
 
 		resp, err := connector.GetCredential(auth)
 		if err != nil {
-			logger.Printf("error fetching token: %s", err)
-			return fmt.Errorf("error fetching token")
+			return fmt.Errorf("error fetching token: %s", err)
 		}
-		println("access_token: " + resp)
+		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, NoColor: true})
+		log.Trace().Msgf("access_token: %s", resp)
+		//println("access_token: " + resp)
 	} else {
 		return fmt.Errorf("missing tpp credentials")
 	}

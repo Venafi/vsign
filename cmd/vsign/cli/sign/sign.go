@@ -21,10 +21,12 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
-	"log"
+
 	"net/http"
 	"os"
 
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/pflag"
 	"github.com/venafi/vsign/cmd/vsign/cli/options"
 	c "github.com/venafi/vsign/pkg/crypto"
@@ -45,7 +47,7 @@ type KeyOpts struct {
 
 var (
 	tlsConfig tls.Config
-	logger    = log.New(os.Stderr, UtilityShortName+": ", log.LstdFlags)
+	//logger    = log.New(os.Stderr, UtilityShortName+": ", log.LstdFlags)
 )
 
 func setTLSConfig() error {
@@ -71,16 +73,16 @@ func SignCmd(ctx context.Context, fs *pflag.FlagSet, signOpts options.SignOption
 
 	cfg, err := vsign.BuildConfig(ctx, signOpts.Config)
 	if err != nil {
-		logger.Printf("error building config: %s", err)
+		//logger.Printf("error building config: %s", err)
 		return fmt.Errorf("error building config")
 	}
 
 	connector, err := vsign.NewClient(&cfg)
 	if err != nil {
-		logger.Printf("Unable to connect to %s: %s", cfg.ConnectorType, err)
 		return err
 	} else {
-		logger.Printf("Successfully connected to %s", cfg.ConnectorType)
+		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, NoColor: true})
+		log.Info().Msgf("Successfully connected to %s", cfg.ConnectorType)
 	}
 
 	env, err := connector.GetEnvironment()
@@ -104,15 +106,15 @@ func SignCmd(ctx context.Context, fs *pflag.FlagSet, signOpts options.SignOption
 		})
 
 		if err != nil {
-			return fmt.Errorf(err.Error())
+			return fmt.Errorf("%s", err.Error())
 		}
 
 		err = cp.WriteSignatures(ctx, signOpts.ImageRef, data, sig, c.EncodeBase64(sig))
 		if err != nil {
-			return fmt.Errorf(err.Error())
+			return fmt.Errorf("%s", err.Error())
 		}
 
-		fmt.Fprintln(os.Stderr, "Pushing signature to: ", signOpts.ImageRef)
+		log.Info().Msgf("Pushing signature to: %s", signOpts.ImageRef)
 		return nil
 	}
 
@@ -192,7 +194,7 @@ func SignCmd(ctx context.Context, fs *pflag.FlagSet, signOpts options.SignOption
 		}
 	}
 
-	fmt.Fprintln(os.Stderr, "Pushing signature to:", signOpts.OutputSignature)
+	log.Info().Msgf("Pushing signature to: %s", signOpts.OutputSignature)
 	return nil
 }
 

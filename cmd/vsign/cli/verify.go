@@ -16,7 +16,6 @@
 package cli
 
 import (
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/venafi/vsign/cmd/vsign/cli/options"
 	"github.com/venafi/vsign/cmd/vsign/cli/verify"
@@ -35,7 +34,8 @@ func Verify() *cobra.Command {
 
 			if err := verify.VerifyCmd(cmd.Context(), *o, args); err != nil {
 
-				return errors.Wrapf(err, "verification failed")
+				//return errors.Wrapf(err, "verification failed")
+				return err
 			}
 			return nil
 		},

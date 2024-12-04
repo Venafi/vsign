@@ -3,8 +3,10 @@ package vsign
 import (
 	"crypto/x509"
 	"fmt"
-	"log"
+	"os"
 
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/venafi/vsign/pkg/endpoint"
 	"github.com/venafi/vsign/pkg/venafi/tpp"
 	"github.com/venafi/vsign/pkg/verror"
@@ -17,7 +19,9 @@ func (cfg *Config) NewClient() (connector endpoint.Connector, err error) {
 	var connectionTrustBundle *x509.CertPool
 
 	if cfg.ConnectionTrust != "" {
-		log.Println("You specified a trust bundle.")
+		//log.Println("You specified a trust bundle.")
+		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+		log.Info().Msg("You specified a trust bundle.")
 		connectionTrustBundle = x509.NewCertPool()
 		if !connectionTrustBundle.AppendCertsFromPEM([]byte(cfg.ConnectionTrust)) {
 			return nil, fmt.Errorf("%w: failed to parse PEM trust bundle", verror.UserDataError)

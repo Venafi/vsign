@@ -21,17 +21,19 @@ import (
 
 // RootOptions define flags and options for the root vsign cli.
 type RootOptions struct {
-	OutputFile string
-	Verbose    bool
+	verbosity string
+	logopts   []string
 }
 
 var _ Interface = (*RootOptions)(nil)
 
 // AddFlags implements Interface
 func (o *RootOptions) AddFlags(cmd *cobra.Command) {
-	cmd.PersistentFlags().StringVar(&o.OutputFile, "output-file", "",
+
+	/*cmd.PersistentFlags().StringVar(&o.OutputFile, "output-file", "",
 		"log output to a file")
 
 	cmd.PersistentFlags().BoolVarP(&o.Verbose, "verbose", "d", false,
-		"log debug output")
+		"log debug output")*/
+
 }

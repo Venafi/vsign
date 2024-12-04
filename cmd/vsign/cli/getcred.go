@@ -16,7 +16,6 @@
 package cli
 
 import (
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/venafi/vsign/cmd/vsign/cli/getcred"
 	"github.com/venafi/vsign/cmd/vsign/cli/options"
@@ -35,7 +34,8 @@ func GetCred() *cobra.Command {
 
 			if err := getcred.GetCredCmd(cmd.Context(), *o, args); err != nil {
 
-				return errors.Wrapf(err, "getcred failed")
+				//return errors.Wrapf(err, "getcred failed")
+				return err
 			}
 			return nil
 		},

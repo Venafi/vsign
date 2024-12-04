@@ -19,10 +19,11 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/venafi/vsign/cmd/vsign/cli/options"
 	"github.com/venafi/vsign/pkg/endpoint"
 	"github.com/venafi/vsign/pkg/plugin/signers"
@@ -34,7 +35,7 @@ const UtilityShortName string = "vSign"
 
 var (
 	tlsConfig tls.Config
-	logger    = log.New(os.Stderr, UtilityShortName+": ", log.LstdFlags)
+	//logger    = log.New(os.Stderr, UtilityShortName+": ", log.LstdFlags)
 )
 
 func setTLSConfig() error {
@@ -45,6 +46,8 @@ func setTLSConfig() error {
 
 func VerifyCmd(ctx context.Context, verifyOpts options.VerifyOptions, args []string) error {
 	var connector endpoint.Connector
+
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, NoColor: true})
 
 	f, err := os.Open(verifyOpts.SignaturePath)
 	if err != nil {
@@ -61,16 +64,16 @@ func VerifyCmd(ctx context.Context, verifyOpts options.VerifyOptions, args []str
 
 		cfg, err := vsign.BuildConfig(ctx, verifyOpts.Config)
 		if err != nil {
-			logger.Printf("error building config: %s", err)
-			return fmt.Errorf("error building config")
+			//logger.Printf("error building config: %s", err)
+			return fmt.Errorf("error building config: %s", err)
 		}
 
 		connector, err = vsign.NewClient(&cfg)
 		if err != nil {
-			logger.Printf("Unable to connect to %s: %s", cfg.ConnectorType, err)
-			return err
+			return fmt.Errorf("unable to connect to %s: %s", cfg.ConnectorType, err)
 		} else {
-			logger.Printf("Successfully connected to %s", cfg.ConnectorType)
+
+			log.Info().Msgf("Successfully connected to %s", cfg.ConnectorType)
 		}
 	}
 
@@ -108,6 +111,6 @@ func VerifyCmd(ctx context.Context, verifyOpts options.VerifyOptions, args []str
 		return fmt.Errorf("%w; unknown verification error", err)
 	}
 
-	log.Println("Verification successful")
+	log.Info().Msg("Verification successful")
 	return nil
 }

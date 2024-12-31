@@ -7,7 +7,7 @@ toolchain go1.23.0
 require (
 	github.com/common-nighthawk/go-figure v0.0.0-20210622060536-734e95fb86be
 	github.com/digitorus/pdf v0.1.2
-	github.com/digitorus/pdfsign v0.0.0-20230417185736-110438cfb75c
+	github.com/digitorus/pdfsign v0.0.0-20241216140527-b9112bb85ba5
 	github.com/digitorus/pkcs7 v0.0.0-20230818184609-3a137a874352
 	github.com/digitorus/timestamp v0.0.0-20231217203849-220c5c2851b7
 	github.com/mattetti/filebuffer v1.0.1

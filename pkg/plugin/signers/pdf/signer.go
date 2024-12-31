@@ -25,6 +25,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/common-nighthawk/go-figure"
 	"github.com/venafi/vsign/cmd/vsign/cli/options"
 	c "github.com/venafi/vsign/pkg/crypto"
 	"github.com/venafi/vsign/pkg/plugin/signers"
@@ -49,6 +50,7 @@ func init() {
 	PDFSigner.Flags().String("reason", "Contract", "Reason for signing")
 	PDFSigner.Flags().String("contact", "acme@example.com", "Contact information for the signatory")
 	PDFSigner.Flags().String("tsa", "http://timestamp.digicert.com", "URL for Time-Stamp Authority (default: http://timestamp.digicert.com)")
+	PDFSigner.Flags().Bool("visual", false, "add visual signature to pdf")
 	signers.Register(PDFSigner)
 }
 
@@ -72,6 +74,31 @@ func sign(r io.Reader, certs []*x509.Certificate, opts signers.SignOpts) ([]byte
 
 	_, hasher, _ := c.GetHasher(opts.Digest)
 
+	var ctype pdfsig.CertType
+	var app pdfsig.Appearance
+
+	if opts.Flags.GetBool("visual") {
+		experimental := figure.NewFigure("experimental: pdf signing with visual signatures", "", true)
+		experimental.Print()
+		ctype = pdfsig.ApprovalSignature
+		app = pdfsig.Appearance{
+			Visible:     true,
+			LowerLeftX:  350,
+			LowerLeftY:  75,
+			UpperRightX: 600,
+			UpperRightY: 100,
+		}
+	} else {
+		ctype = pdfsig.CertificationSignature
+		app = pdfsig.Appearance{
+			Visible:     false,
+			LowerLeftX:  350,
+			LowerLeftY:  75,
+			UpperRightX: 600,
+			UpperRightY: 100,
+		}
+	}
+
 	signedPayload, err := pdfsig.SignFile(r, pdfsig.SignData{
 		Signature: pdfsig.SignDataSignature{
 			Info: pdfsig.SignDataSignatureInfo{
@@ -81,10 +108,11 @@ func sign(r io.Reader, certs []*x509.Certificate, opts signers.SignOpts) ([]byte
 				ContactInfo: opts.Flags.GetString("contact"),
 				Date:        time.Now().Local(),
 			},
-			CertType:   pdfsig.CertificationSignature,
+			CertType:   ctype,
 			DocMDPPerm: pdfsig.AllowFillingExistingFormFieldsAndSignaturesPerms,
 		},
 		TPPOpts:           opts,
+		Appearance:        app,
 		DigestAlgorithm:   hasher,
 		Certificate:       cert.Leaf,
 		CertificateChains: certificate_chains,

@@ -33,6 +33,8 @@ type TSA struct {
 	Password string
 }
 
+type CertType uint
+
 type RevocationFunction func(cert, issuer *x509.Certificate, i *revocation.InfoArchival) error
 
 type signedData struct {
@@ -148,7 +150,6 @@ type SignedData struct {
 }
 
 type SignData struct {
-	ObjectId           uint32
 	Signature          SignDataSignature
 	TPPOpts            signers.SignOpts
 	DigestAlgorithm    crypto.Hash
@@ -157,28 +158,40 @@ type SignData struct {
 	TSA                TSA
 	RevocationData     revocation.InfoArchival
 	RevocationFunction RevocationFunction
+	Appearance         Appearance
+	objectId           uint32
+}
+
+// Appearance represents the appearance of the signature
+type Appearance struct {
+	Visible     bool
+	Page        uint32
+	LowerLeftX  float64
+	LowerLeftY  float64
+	UpperRightX float64
+	UpperRightY float64
 }
 
 type VisualSignData struct {
-	ObjectId uint32
-	Length   int64
+	pageObjectId uint32
+	objectId     uint32
 }
 
 type InfoData struct {
 	ObjectId uint32
-	Length   int64
 }
 
 type SignDataSignature struct {
-	CertType   uint
+	CertType   CertType
 	DocMDPPerm uint
 	Info       SignDataSignatureInfo
 }
 
 const (
-	CertificationSignature = iota + 1
+	CertificationSignature CertType = iota + 1
 	ApprovalSignature
 	UsageRightsSignature
+	TimeStampSignature
 )
 
 const (
@@ -196,7 +209,6 @@ type SignDataSignatureInfo struct {
 }
 
 type SignContext struct {
-	Filesize                   int64
 	InputFile                  io.ReadSeeker
 	OutputFile                 io.Writer
 	OutputBuffer               *filebuffer.Buffer
@@ -211,10 +223,15 @@ type SignContext struct {
 	ByteRangeValues            []int64
 	SignatureMaxLength         uint32
 	SignatureMaxLengthBase     uint32
+
+	existingSignatures []SignData
+	lastXrefID         uint32
+	newXrefEntries     []xrefEntry
+	updatedXrefEntries []xrefEntry
 }
 
-func SignFile(r io.Reader, sd SignData) ([]byte, error) {
-	input_file, err := os.Open(sd.TPPOpts.Path)
+func SignFile(r io.Reader, sign_data SignData) ([]byte, error) {
+	input_file, err := os.Open(sign_data.TPPOpts.Path)
 	if err != nil {
 		return nil, err
 	}
@@ -231,30 +248,25 @@ func SignFile(r io.Reader, sd SignData) ([]byte, error) {
 		return nil, err
 	}
 
-	return Sign(input_file, rdr, size, sd)
+	return Sign(input_file, rdr, size, sign_data)
 }
 
 func Sign(input io.ReadSeeker, rdr *pdf.Reader, size int64, sign_data SignData) ([]byte, error) {
-	sign_data.ObjectId = uint32(rdr.XrefInformation.ItemCount) + 3
-
-	// We do size+1 because we insert a newline.
+	sign_data.objectId = uint32(rdr.XrefInformation.ItemCount) + 2
 
 	context := SignContext{
-		Filesize:  size + 1,
-		PDFReader: rdr,
-		InputFile: input,
-		VisualSignData: VisualSignData{
-			ObjectId: uint32(rdr.XrefInformation.ItemCount),
-		},
-		CatalogData: CatalogData{
-			ObjectId: uint32(rdr.XrefInformation.ItemCount) + 1,
-		},
-		InfoData: InfoData{
-			ObjectId: uint32(rdr.XrefInformation.ItemCount) + 2,
-		},
+		PDFReader:              rdr,
+		InputFile:              input,
 		SignData:               sign_data,
 		SignatureMaxLengthBase: uint32(hex.EncodedLen(512)),
 	}
+
+	// Fetch existing signatures
+	existingSignatures, err := context.fetchExistingSignatures()
+	if err != nil {
+		return nil, err
+	}
+	context.existingSignatures = existingSignatures
 
 	signedPayload, err := context.SignPDF()
 	if err != nil {
@@ -275,10 +287,13 @@ func (context *SignContext) SignPDF() ([]byte, error) {
 	if !context.SignData.DigestAlgorithm.Available() {
 		context.SignData.DigestAlgorithm = crypto.SHA256
 	}
+	if context.SignData.Appearance.Page == 0 {
+		context.SignData.Appearance.Page = 1
+	}
 
 	context.OutputBuffer = filebuffer.New([]byte{})
 
-	// Copy old file into new file.
+	// Copy old file into new buffer.
 	_, err := context.InputFile.Seek(0, 0)
 	if err != nil {
 		return nil, err
@@ -295,48 +310,60 @@ func (context *SignContext) SignPDF() ([]byte, error) {
 	// Base size for signature.
 	context.SignatureMaxLength = context.SignatureMaxLengthBase
 
-	switch context.SignData.Certificate.SignatureAlgorithm.String() {
-	case "SHA1-RSA":
-	case "ECDSA-SHA1":
-	case "DSA-SHA1":
-		context.SignatureMaxLength += uint32(hex.EncodedLen(128))
-	case "SHA256-RSA":
-	case "ECDSA-SHA256":
-	case "DSA-SHA256":
-		context.SignatureMaxLength += uint32(hex.EncodedLen(256))
-	case "SHA384-RSA":
-	case "ECDSA-SHA384":
-		context.SignatureMaxLength += uint32(hex.EncodedLen(384))
-	case "SHA512-RSA":
-	case "ECDSA-SHA512":
-		context.SignatureMaxLength += uint32(hex.EncodedLen(512))
-	}
+	// If not a timestamp signature
+	if context.SignData.Signature.CertType != TimeStampSignature {
+		switch context.SignData.Certificate.SignatureAlgorithm.String() {
+		case "SHA1-RSA":
+		case "ECDSA-SHA1":
+		case "DSA-SHA1":
+			context.SignatureMaxLength += uint32(hex.EncodedLen(128))
+		case "SHA256-RSA":
+		case "ECDSA-SHA256":
+		case "DSA-SHA256":
+			context.SignatureMaxLength += uint32(hex.EncodedLen(256))
+		case "SHA384-RSA":
+		case "ECDSA-SHA384":
+			context.SignatureMaxLength += uint32(hex.EncodedLen(384))
+		case "SHA512-RSA":
+		case "ECDSA-SHA512":
+			context.SignatureMaxLength += uint32(hex.EncodedLen(512))
+		}
 
-	// Add size of digest algorithm twice (for file digist and signing certificate attribute)
-	context.SignatureMaxLength += uint32(hex.EncodedLen(context.SignData.DigestAlgorithm.Size() * 2))
+		// Add size of digest algorithm twice (for file digist and signing certificate attribute)
+		context.SignatureMaxLength += uint32(hex.EncodedLen(context.SignData.DigestAlgorithm.Size() * 2))
 
-	// Add size for my certificate.
-	degenerated, err := pkcs7.DegenerateCertificate(context.SignData.Certificate.Raw)
-	if err != nil {
-		return nil, fmt.Errorf("failed to degenerate certificate: %w", err)
-	}
+		// Add size for my certificate.
+		degenerated, err := pkcs7.DegenerateCertificate(context.SignData.Certificate.Raw)
+		if err != nil {
+			return nil, fmt.Errorf("failed to degenerate certificate: %w", err)
+		}
 
-	context.SignatureMaxLength += uint32(hex.EncodedLen(len(degenerated)))
+		context.SignatureMaxLength += uint32(hex.EncodedLen(len(degenerated)))
 
-	// Add size for certificate chain.
-	var certificate_chain []*x509.Certificate
-	if len(context.SignData.CertificateChains) > 0 && len(context.SignData.CertificateChains[0]) > 1 {
-		certificate_chain = context.SignData.CertificateChains[0][1:]
-	}
+		// Add size of the raw issuer which is added by AddSignerChain
+		context.SignatureMaxLength += uint32(hex.EncodedLen(len(context.SignData.Certificate.RawIssuer)))
 
-	if len(certificate_chain) > 0 {
-		for _, cert := range certificate_chain {
-			degenerated, err := pkcs7.DegenerateCertificate(cert.Raw)
-			if err != nil {
-				return nil, fmt.Errorf("failed to degenerate certificate in chain: %w", err)
+		// Add size for certificate chain.
+		var certificate_chain []*x509.Certificate
+		if len(context.SignData.CertificateChains) > 0 && len(context.SignData.CertificateChains[0]) > 1 {
+			certificate_chain = context.SignData.CertificateChains[0][1:]
+		}
+
+		if len(certificate_chain) > 0 {
+			for _, cert := range certificate_chain {
+				degenerated, err := pkcs7.DegenerateCertificate(cert.Raw)
+				if err != nil {
+					return nil, fmt.Errorf("failed to degenerate certificate in chain: %w", err)
+				}
+
+				context.SignatureMaxLength += uint32(hex.EncodedLen(len(degenerated)))
 			}
+		}
 
-			context.SignatureMaxLength += uint32(hex.EncodedLen(len(degenerated)))
+		// Fetch revocation data before adding signature placeholder.
+		// Revocation data can be quite large and we need to create enough space in the placeholder.
+		if err := context.fetchRevocationData(); err != nil {
+			return nil, fmt.Errorf("failed to fetch revocation data: %w", err)
 		}
 	}
 
@@ -349,84 +376,93 @@ func (context *SignContext) SignPDF() ([]byte, error) {
 		context.SignatureMaxLength += uint32(hex.EncodedLen(9000))
 	}
 
-	// Fetch revocation data before adding signature placeholder.
-	// Revocation data can be quite large and we need to create enough space in the placeholder.
-	if err := context.fetchRevocationData(); err != nil {
-		return nil, fmt.Errorf("failed to fetch revocation data: %w", err)
+	// Create the signature object
+	var signature_object []byte
+
+	switch context.SignData.Signature.CertType {
+	case TimeStampSignature:
+		signature_object = context.createTimestampPlaceholder()
+	default:
+		signature_object = context.createSignaturePlaceholder()
 	}
 
-	visual_signature, err := context.createVisualSignature()
+	// Write the new signature object
+	context.SignData.objectId, err = context.addObject(signature_object)
+	if err != nil {
+		return nil, fmt.Errorf("failed to add signature object: %w", err)
+	}
+
+	// Create visual signature (visible or invisible based on CertType)
+	visible := false
+	rectangle := [4]float64{0, 0, 0, 0}
+	if context.SignData.Signature.CertType != ApprovalSignature && context.SignData.Appearance.Visible {
+		return nil, fmt.Errorf("visible signatures are only allowed for approval signatures")
+	} else if context.SignData.Signature.CertType == ApprovalSignature && context.SignData.Appearance.Visible {
+		visible = true
+		rectangle = [4]float64{
+			context.SignData.Appearance.LowerLeftX,
+			context.SignData.Appearance.LowerLeftY,
+			context.SignData.Appearance.UpperRightX,
+			context.SignData.Appearance.UpperRightY,
+		}
+	}
+
+	// Example usage: passing page number and default rect values
+	visual_signature, err := context.createVisualSignature(visible, context.SignData.Appearance.Page, rectangle)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create visual signature: %w", err)
 	}
 
-	context.VisualSignData.Length = int64(len(visual_signature))
-
-	// Write the new catalog object.
-	if _, err := context.OutputBuffer.Write([]byte(visual_signature)); err != nil {
-		return nil, err
+	// Write the new visual signature object.
+	context.VisualSignData.objectId, err = context.addObject(visual_signature)
+	if err != nil {
+		return nil, fmt.Errorf("failed to add visual signature object: %w", err)
 	}
 
+	if context.SignData.Appearance.Visible {
+		inc_page_update, err := context.createIncPageUpdate(context.SignData.Appearance.Page, context.VisualSignData.objectId)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create incremental page update: %w", err)
+		}
+		err = context.updateObject(context.VisualSignData.pageObjectId, inc_page_update)
+		if err != nil {
+			return nil, fmt.Errorf("failed to add incremental page update object: %w", err)
+		}
+	}
+
+	// Create a new catalog object
 	catalog, err := context.createCatalog()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create catalog: %w", err)
 	}
 
-	context.CatalogData.Length = int64(len(catalog))
-
-	// Write the new catalog object.
-	if _, err := context.OutputBuffer.Write([]byte(catalog)); err != nil {
-		return nil, fmt.Errorf("failed to write catalog: %w", err)
-	}
-
-	// Create the signature object
-	signature_object, byte_range_start_byte, signature_contents_start_byte := context.createSignaturePlaceholder()
-
-	info, err := context.createInfo()
+	// Write the new catalog object
+	context.CatalogData.ObjectId, err = context.addObject(catalog)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create info: %w", err)
+		return nil, fmt.Errorf("failed to add catalog object: %w", err)
 	}
 
-	context.InfoData.Length = int64(len(info))
-
-	// Write the new catalog object.
-	if _, err := context.OutputBuffer.Write([]byte(info)); err != nil {
-		return nil, fmt.Errorf("failed to write info: %w", err)
-	}
-
-	appended_bytes := context.Filesize + int64(len(catalog)) + int64(len(visual_signature)) + int64(len(info))
-
-	// Positions are relative to old start position of xref table.
-	byte_range_start_byte += appended_bytes
-	signature_contents_start_byte += appended_bytes
-
-	context.ByteRangeStartByte = byte_range_start_byte
-	context.SignatureContentsStartByte = signature_contents_start_byte
-
-	// Write the new signature object.
-	if _, err := context.OutputBuffer.Write([]byte(signature_object)); err != nil {
-		return nil, fmt.Errorf("failed to create the new signature object: %w", err)
-	}
-
-	// Calculate the new start position of the xref table.
-	context.NewXrefStart = appended_bytes + int64(len(signature_object))
-
+	// Write xref table
 	if err := context.writeXref(); err != nil {
 		return nil, fmt.Errorf("failed to write xref: %w", err)
 	}
 
+	// Write trailer
 	if err := context.writeTrailer(); err != nil {
 		return nil, fmt.Errorf("failed to write trailer: %w", err)
 	}
 
+	// Update byte range
 	if err := context.updateByteRange(); err != nil {
 		return nil, fmt.Errorf("failed to update byte range: %w", err)
 	}
 
+	// Replace signature
 	if _, err := context.replaceSignature(); err != nil {
 		return nil, fmt.Errorf("failed to replace signature: %w", err)
 	}
 
+	// Write final output
 	if _, err := context.OutputBuffer.Seek(0, 0); err != nil {
 		return nil, err
 	}
@@ -434,7 +470,7 @@ func (context *SignContext) SignPDF() ([]byte, error) {
 
 	/*
 		if _, err := context.OutputFile.Write(file_content); err != nil {
-			return nil, fmt.Errorf("failed to write to output file: %w", err)
+			return nil, err
 		}*/
 
 	return file_content, nil

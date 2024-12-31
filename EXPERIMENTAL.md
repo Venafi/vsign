@@ -70,3 +70,14 @@ vsign verify --config test/config.ini --payload test/hello.jar --signature test/
    ```
    vsign sign --config test/config.ini --image myorg/myapp:v1 --mechanism 64
    ```
+
+#### PDF Signing with Visual Signatures
+
+Initial (experimental) support for PDF visual signatures based on [digitorus/pdfsign](https://github.com/digitorus/pdfsign) commit [b9112bb](https://github.com/digitorus/pdfsign/commit/b9112bb85ba5e2439bfacae2ce694e7f1cb66db1).  Currently only available on [main](https://github.com/Venafi/vsign) branch
+
+```
+git clone https://github.com/Venafi/vsign
+cd vsign
+make vsign
+./vsign sign --config test/config.ini --payload test/dummy.pdf --output-signature test/dummy-signed.pdf --digest sha256 --mechanism 1 --name "John Doe" --location "Pleasantville" --reason "Contract" --contact "john@doe.com" --visual
+```

@@ -26,6 +26,7 @@ type PDFOptions struct {
 	Reason   string
 	Contact  string
 	TSA      string
+	Visual   bool
 }
 
 var _ Interface = (*PDFOptions)(nil)
@@ -38,5 +39,6 @@ func (o *PDFOptions) AddFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&o.Reason, "reason", "Contract", "Reason for signing")
 	cmd.Flags().StringVar(&o.Contact, "contact", "acme@example.com", "Contact information for the signatory")
 	cmd.Flags().StringVar(&o.TSA, "tsa", "http://timestamp.digicert.com", "URL for Time-Stamp Authority (default: http://timestamp.digicert.com)")
+	cmd.Flags().BoolVar(&o.Visual, "visual", false, "add visual signature to pdf")
 
 }

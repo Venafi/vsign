@@ -14,7 +14,7 @@ require (
 	github.com/sigstore/sigstore v1.8.15
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/viper v1.19.0
-	golang.org/x/crypto v0.33.0
+	golang.org/x/crypto v0.34.0
 )
 
 require (

@@ -189,7 +189,7 @@ require (
 	github.com/google/go-containerregistry v0.20.3
 	github.com/mitchellh/mapstructure v1.5.1-0.20231216201459-8508981c8b6c // indirect
 	github.com/pelletier/go-toml/v2 v2.2.3 // indirect
-	github.com/rs/zerolog v1.33.0
+	github.com/rs/zerolog v1.34.0
 	github.com/sassoftware/relic/v7 v7.6.2
 	github.com/sigstore/cosign/v2 v2.4.3
 	github.com/spf13/afero v1.12.0 // indirect

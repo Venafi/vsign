@@ -13,7 +13,7 @@ require (
 	github.com/mattetti/filebuffer v1.0.1
 	github.com/sigstore/sigstore v1.9.1
 	github.com/spf13/cobra v1.9.1
-	github.com/spf13/viper v1.20.0
+	github.com/spf13/viper v1.20.1
 	golang.org/x/crypto v0.36.0
 )
 

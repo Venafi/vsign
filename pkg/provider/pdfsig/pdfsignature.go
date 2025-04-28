@@ -509,8 +509,16 @@ func (context *SignContext) addSignerChain(sd *SignedData, ee *x509.Certificate,
 
 func (context *SignContext) GetTSA(sign_content []byte) (timestamp_response []byte, err error) {
 	sign_reader := bytes.NewReader(sign_content)
+
+	var digestAlg crypto.Hash
+	if context.SignData.DigestAlgorithm == crypto.SHA1 { // SHA-1 DigestAlgorithm no longer supported per CA/B v3.9 section 6.8 Timestamping
+		digestAlg = crypto.SHA256
+	} else {
+		digestAlg = context.SignData.DigestAlgorithm
+	}
+
 	ts_request, err := timestamp.CreateRequest(sign_reader, &timestamp.RequestOptions{
-		Hash:         context.SignData.DigestAlgorithm,
+		Hash:         digestAlg,
 		Certificates: true,
 	})
 	if err != nil {

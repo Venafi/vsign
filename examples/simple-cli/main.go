@@ -26,7 +26,7 @@ func main() {
 
 	e, err := connector.GetEnvironment()
 	if err != nil {
-		panic(fmt.Errorf(err.Error()))
+		panic(fmt.Errorf("getenvironment error: %s", err.Error()))
 	}
 
 	sig, err := connector.Sign(&endpoint.SignOption{

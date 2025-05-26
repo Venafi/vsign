@@ -296,7 +296,7 @@ func parseEnvironmentResult(httpStatusCode int, httpStatus string, body []byte) 
 		log.Trace().Msgf(string(urlResourceCodeSignGetEnvironment)+" response:\n%s\n", string(body))
 		reqData, err := parseEnvironmentData(body)
 		if reqData.Error != "" {
-			return endpoint.Environment{}, fmt.Errorf(reqData.Error)
+			return endpoint.Environment{}, fmt.Errorf("parseenvironment error: %s", reqData.Error)
 		}
 		if err != nil {
 			return endpoint.Environment{}, err

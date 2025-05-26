@@ -75,7 +75,7 @@ func SignJWTCmd(ctx context.Context, jwtOpts options.JWTOptions, args []string) 
 	token, err := connector.SignJWT(env.KeyID, base64.RawURLEncoding.EncodeToString(header), base64.RawURLEncoding.EncodeToString(payload))
 
 	if err != nil {
-		return fmt.Errorf(err.Error())
+		return fmt.Errorf("signjwt error: %s", err.Error())
 	}
 
 	println(token)

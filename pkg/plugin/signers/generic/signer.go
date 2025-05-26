@@ -49,7 +49,7 @@ func sign(r io.Reader, certs []*x509.Certificate, opts signers.SignOpts) ([]byte
 		RawFlag:   false,
 	})
 	if err != nil {
-		return nil, fmt.Errorf(err.Error())
+		return nil, fmt.Errorf("signing error: %s", err.Error())
 	}
 
 	return sig, nil

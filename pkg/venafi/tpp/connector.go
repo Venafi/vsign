@@ -297,7 +297,7 @@ func (c *Connector) GetWKSPublicKeyBytes(email string) (pub []byte, err error) {
 func (c *Connector) Sign(so *endpoint.SignOption) (sig []byte, err error) {
 	var signReq apiSignRequest
 	switch so.Mechanism {
-	case crypto.RsaPkcs, crypto.EcDsa, crypto.MlDsa, crypto.SlhDsa:
+	case crypto.RsaPkcs, crypto.MlDsa, crypto.SlhDsa:
 		hasher, _, prefix := crypto.GetHasher(so.DigestAlg)
 
 		//Experimental SHA3/SHAKE support
@@ -332,7 +332,7 @@ func (c *Connector) Sign(so *endpoint.SignOption) (sig []byte, err error) {
 		//job := defaultClientID + "-job-" + randstr.Hex(10)
 		signReq = apiSignRequest{ClientInfo: ClientInfo{endpoint.DefaultClientID, "0.1"}, ProcessInfo: ProcessInfo{endpoint.DefaultClientID}, KeyId: so.KeyID, ClientMechanism: mech, Mechanism: so.Mechanism, Data: crypto.EncodeBase64(hv)}
 
-	case crypto.RsaPkcsPss: // RSA PSS
+	case crypto.RsaPkcsPss, crypto.EcDsa: // RSA PSS
 		payload := []byte(so.Payload)
 		if so.B64Flag {
 			payload, err = crypto.DecodeBase64(string(so.Payload))
@@ -341,12 +341,22 @@ func (c *Connector) Sign(so *endpoint.SignOption) (sig []byte, err error) {
 			}
 		}
 
-		hasher, _, prefix := crypto.GetHasher(so.DigestAlg)
+		//hasher, _, prefix := crypto.GetHasher(so.DigestAlg)
+		hasher, _, _ := crypto.GetHasher(so.DigestAlg)
 		hasher.Write([]byte(payload))
-		hv := append(prefix, hasher.Sum(nil)...)
+		//hv := append(prefix, hasher.Sum(nil)...)
+		hv := hasher.Sum(nil)
 		//println(base64.StdEncoding.EncodeToString(hv))
-		mech := crypto.GetPSSMechanism(so.DigestAlg)
-		signReq = apiSignRequest{ClientInfo: ClientInfo{endpoint.DefaultClientID, "0.1"}, ProcessInfo: ProcessInfo{endpoint.DefaultClientID}, KeyId: so.KeyID, ClientMechanism: mech.Mechanism, Mechanism: so.Mechanism, ParameterInfo: ParameterInfo{ParameterType: "PKCSPSS", MGF: mech.MGF, HashAlg: mech.HashAlg, SaltLen: mech.SaltLen}, Data: crypto.EncodeBase64(hv)}
+
+		//mech := crypto.GetPSSMechanism(so.DigestAlg)
+		//signReq = apiSignRequest{ClientInfo: ClientInfo{endpoint.DefaultClientID, "0.1"}, ProcessInfo: ProcessInfo{endpoint.DefaultClientID}, KeyId: so.KeyID, ClientMechanism: mech.Mechanism, Mechanism: so.Mechanism, ParameterInfo: ParameterInfo{ParameterType: "PKCSPSS", MGF: mech.MGF, HashAlg: mech.HashAlg, SaltLen: mech.SaltLen}, Data: crypto.EncodeBase64(hv)}
+		if so.Mechanism == crypto.EcDsa {
+			mech := crypto.GetECClientMechanism(so.DigestAlg)
+			signReq = apiSignRequest{ClientInfo: ClientInfo{endpoint.DefaultClientID, "0.1"}, ProcessInfo: ProcessInfo{endpoint.DefaultClientID}, KeyId: so.KeyID, ClientMechanism: mech, Mechanism: so.Mechanism, Data: crypto.EncodeBase64(hv)}
+		} else {
+			mech := crypto.GetPSSMechanism(so.DigestAlg)
+			signReq = apiSignRequest{ClientInfo: ClientInfo{endpoint.DefaultClientID, "0.1"}, ProcessInfo: ProcessInfo{endpoint.DefaultClientID}, KeyId: so.KeyID, ClientMechanism: mech.Mechanism, Mechanism: so.Mechanism, ParameterInfo: ParameterInfo{ParameterType: "PKCSPSS", MGF: mech.MGF, HashAlg: mech.HashAlg, SaltLen: mech.SaltLen}, Data: crypto.EncodeBase64(hv)}
+		}
 
 	default:
 		signReq = apiSignRequest{ClientInfo: ClientInfo{endpoint.DefaultClientID, "0.1"}, ProcessInfo: ProcessInfo{endpoint.DefaultClientID}, KeyId: so.KeyID, Mechanism: so.Mechanism, Data: string(so.Payload)}

@@ -10,6 +10,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"hash"
 	"math/big"
@@ -28,6 +29,12 @@ type PSSMechanism struct {
 type sig struct {
 	R, S *big.Int
 }
+
+var (
+	// Sadly this is missing from crypto/ecdsa compared to crypto/rsa
+	ErrECDSAVerification   = errors.New("crypto/ecdsa: verification error")
+	ErrED25519Verification = errors.New("crypto/ed25519: verification error")
+)
 
 const RsaPkcs = 1
 const RsaPkcsOaep = 9
@@ -144,11 +151,11 @@ func EncodeASN1(rawBase64sig string, mechanism int) ([]byte, error) {
 	}
 
 	switch mechanism {
-	case RsaPkcs, EdDsa, RsaSha1, RsaSha256, RsaSha384, RsaSha512, RsaPkcsPss, RsaPssSha1, RsaPssSha256, RsaPssSha384, RsaPssSha512:
+	case EcDsa, RsaPkcs, EdDsa, RsaSha1, RsaSha256, RsaSha384, RsaSha512, RsaPkcsPss, RsaPssSha1, RsaPssSha256, RsaPssSha384, RsaPssSha512:
 		return sigbytes, nil
 	case MlDsa, SlhDsa: // Experimental PQC support
 		return sigbytes, nil
-	case EcDsa, EcDsaSha1, EcDsaSha224, EcDsaSha256, EcDsaSha384, EcDsaSha512:
+	case EcDsaSha1, EcDsaSha224, EcDsaSha256, EcDsaSha384, EcDsaSha512:
 		r := new(big.Int).SetBytes(sigbytes[0 : len(sigbytes)/2])
 		s := new(big.Int).SetBytes(sigbytes[len(sigbytes)/2:])
 		components := sig{r, s}
@@ -193,12 +200,29 @@ func Verify(data []byte, signature []byte, digest string, publicKeyPath string) 
 
 	switch publicKey := publicKey.(type) {
 	case *ecdsa.PublicKey:
-		if !ecdsa.VerifyASN1(publicKey, hasher.Sum(nil), signature) {
-			return fmt.Errorf("failed verification")
+		var keySize = 32
+		switch publicKey.Params().BitSize {
+		case 256: // p-256
+			keySize = 32
+		case 384:
+			keySize = 48
+		case 521:
+			keySize = 66
+		default:
+			keySize = 32
+		}
+		if len(signature) != 2*keySize {
+			println("test")
+			return ErrECDSAVerification
+		}
+		r := big.NewInt(0).SetBytes(signature[:keySize])
+		s := big.NewInt(0).SetBytes(signature[keySize:])
+		if !ecdsa.Verify(publicKey, hasher.Sum(nil), r, s) {
+			return ErrECDSAVerification
 		}
 	case ed25519.PublicKey:
 		if !ed25519.Verify(publicKey, data, signature) {
-			return fmt.Errorf("failed verification")
+			return ErrED25519Verification
 		}
 	case *rsa.PublicKey:
 		if err := rsa.VerifyPKCS1v15(publicKey, hashAlgo, hasher.Sum(nil), signature); err != nil {

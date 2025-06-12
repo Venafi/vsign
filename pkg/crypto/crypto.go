@@ -6,7 +6,6 @@ import (
 	"crypto/ed25519"
 	"crypto/rsa"
 	"crypto/x509"
-	"encoding/asn1"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/pem"
@@ -150,20 +149,7 @@ func EncodeASN1(rawBase64sig string, mechanism int) ([]byte, error) {
 		return nil, err
 	}
 
-	switch mechanism {
-	case EcDsa, RsaPkcs, EdDsa, RsaSha1, RsaSha256, RsaSha384, RsaSha512, RsaPkcsPss, RsaPssSha1, RsaPssSha256, RsaPssSha384, RsaPssSha512:
-		return sigbytes, nil
-	case MlDsa, SlhDsa: // Experimental PQC support
-		return sigbytes, nil
-	case EcDsaSha1, EcDsaSha224, EcDsaSha256, EcDsaSha384, EcDsaSha512:
-		r := new(big.Int).SetBytes(sigbytes[0 : len(sigbytes)/2])
-		s := new(big.Int).SetBytes(sigbytes[len(sigbytes)/2:])
-		components := sig{r, s}
-		encoding, _ := asn1.Marshal(components)
-		return encoding, nil
-	default:
-		return nil, fmt.Errorf("invalid mechanism and/or currently not supported")
-	}
+	return sigbytes, err
 }
 
 func EncodeBase64(data []byte) string {

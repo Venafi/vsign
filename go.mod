@@ -163,7 +163,7 @@ require (
 	golang.org/x/mod v0.25.0 // indirect
 	golang.org/x/net v0.40.0 // indirect
 	golang.org/x/oauth2 v0.30.0 // indirect
-	golang.org/x/sync v0.15.0 // indirect
+	golang.org/x/sync v0.16.0 // indirect
 	golang.org/x/term v0.32.0 // indirect
 	golang.org/x/time v0.11.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250519155744-55703ea1f237 // indirect
@@ -200,7 +200,7 @@ require (
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8
 	golang.org/x/sys v0.33.0 // indirect
-	golang.org/x/text v0.26.0
+	golang.org/x/text v0.27.0
 	gopkg.in/ini.v1 v1.67.0
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	sigs.k8s.io/release-utils v0.11.1

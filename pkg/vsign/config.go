@@ -15,12 +15,14 @@ import (
 
 // Config is a basic structure for high level initiating connector to Trust Platform (TPP)/Venafi Cloud
 type Config struct {
-	// ConnectorType specify what do you want to use. May be "TPP".
+	// ConnectorType specify what do you want to use. May be "TPP" or "Cloud".
 	ConnectorType endpoint.ConnectorType
 	// BaseUrl should be specified for Venafi Platform.
 	BaseUrl string
 	// Project is name of a CodeSign Protect project in Venafi Platform. For TPP, if necessary, escape backslash symbols.   For example,  "test\\zone" or `test\zone`.
 	Project string
+	// KeyLabel is the unique key label for a Signing Key in Code Sign Manager Cloud
+	KeyLabel string
 	// Credentials should contain either User and Password for TPP connections.
 	Credentials *endpoint.Authentication
 	// ConnectionTrust  may contain a trusted CA or certificate of server if you use self-signed certificate.
@@ -82,14 +84,15 @@ func BuildConfig(c context.Context, config string) (cfg Config, err error) {
 		var baseURL string
 		var auth = &endpoint.Authentication{}
 
-		token := getPropertyFromEnvironment(vSignToken)
-		jwt := getPropertyFromEnvironment(vSignJWT)
+		token := getPropertyFromEnvironment(vSignToken)   // TPP environment variable
+		jwt := getPropertyFromEnvironment(vSignJWT)       // TPP environment variable
+		apiKey := getPropertyFromEnvironment(vSignAPIKey) // Cloud environment variable
 
 		url := getPropertyFromEnvironment(vSignURL)
 		if url != "" {
 			baseURL = url
 		} else {
-			return cfg, fmt.Errorf("venafi codeSign protect base url is required")
+			return cfg, fmt.Errorf("venafi codeSign protect TPP or Cloud base url is required")
 		}
 
 		connectorType = endpoint.ConnectorTypeTPP
@@ -102,6 +105,11 @@ func BuildConfig(c context.Context, config string) (cfg Config, err error) {
 			auth.JWT = jwt
 		}
 
+		if apiKey != "" {
+			auth.APIKey = apiKey
+			connectorType = endpoint.ConnectorTypeCloud
+		}
+
 		cfg.ConnectorType = connectorType
 		cfg.Credentials = auth
 		cfg.BaseUrl = baseURL
@@ -111,7 +119,18 @@ func BuildConfig(c context.Context, config string) (cfg Config, err error) {
 		if project != "" {
 			cfg.Project = project
 		} else {
-			return cfg, fmt.Errorf("a valid venafi codeSign protect project is required")
+			if cfg.ConnectorType == endpoint.ConnectorTypeTPP {
+				return cfg, fmt.Errorf("a valid venafi codeSign protect project is required")
+			}
+		}
+
+		keyLabel := getPropertyFromEnvironment(vSignKeyLabel)
+		if keyLabel != "" {
+			cfg.KeyLabel = keyLabel
+		} else {
+			if cfg.ConnectorType == endpoint.ConnectorTypeCloud {
+				return cfg, fmt.Errorf("a valid venafi cloud key lable is required")
+			}
 		}
 
 		// Use trust bundle if supplied
@@ -191,6 +210,18 @@ func loadConfigFromFile(path, section string) (cfg Config, err error) {
 		if m.has("tpp_project") {
 			cfg.Project = m["tpp_project"]
 		}
+	} else if m.has("cloud_apikey") {
+		connectorType = endpoint.ConnectorTypeCloud
+		auth.APIKey = m["cloud_apikey"]
+		if m["cloud_url"] != "" {
+			baseUrl = m["cloud_url"]
+		}
+		if m["url"] != "" {
+			baseUrl = m["url"]
+		}
+		if m.has("cloud_keylabel") {
+			cfg.KeyLabel = m["cloud_keylabel"]
+		}
 	} else {
 		return cfg, fmt.Errorf("failed to load config: connector type cannot be defined")
 	}
@@ -258,8 +289,18 @@ func validateSection(s *ini.Section) error {
 		"trust_bundle": true,
 	}
 
+	var CloudValidKeys set = map[string]bool{
+		"url":            true,
+		"cloud_apikey":   true,
+		"cloud_keylabel": true,
+	}
+
 	//fmt.Fprintf(os.Stdout, "Validating configuration section %s", s.Name())
 	var m dict = s.KeysHash()
+
+	if (m.has("access_token") || m.has("jwt")) && m.has("cloud_apikey") {
+		return fmt.Errorf("configuration issue in section %s: only one between TPP access token, cloud api key or jwt can be set", s.Name())
+	}
 
 	if m.has("jwt") || m.has("access_token") {
 		// looks like TPP config section
@@ -270,6 +311,13 @@ func validateSection(s *ini.Section) error {
 		}
 		if m.has("jwt") && m.has("access_token") {
 			return fmt.Errorf("configuration issue in section %s: could not have both TPP JWT and access token", s.Name())
+		}
+	} else if m.has("cloud_apikey") {
+		// looks like Cloud config section
+		for k := range m {
+			if !CloudValidKeys.has(k) {
+				return fmt.Errorf("illegal key '%s' in Cloud section %s", k, s.Name())
+			}
 		}
 	} else if m.has("test_mode") {
 		// it's ok

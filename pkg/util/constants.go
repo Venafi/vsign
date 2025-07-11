@@ -1,3 +1,6 @@
 package util
 
-const PathSeparator = "\\"
+const (
+	PathSeparator    = "\\"
+	HeaderTpplApikey = "tppl-api-key"
+)

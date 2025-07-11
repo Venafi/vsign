@@ -13,6 +13,7 @@ const (
 	ConnectorTypeUndefined ConnectorType = iota
 	// ConnectorTypeTPP represents the TPP connector type
 	ConnectorTypeTPP
+	ConnectorTypeCloud
 
 	DefaultClientID = "vsign-sdk"
 	DefaultScope    = "codesignclient;codesign;certificate:manage,discover"
@@ -28,6 +29,8 @@ func (t ConnectorType) String() string {
 		return "Undefined Endpoint"
 	case ConnectorTypeTPP:
 		return "TPP"
+	case ConnectorTypeCloud:
+		return "Cloud"
 	default:
 		return fmt.Sprintf("unexpected connector type: %d", t)
 	}
@@ -37,8 +40,10 @@ func (t ConnectorType) String() string {
 type Connector interface {
 	// GetType returns a connector type (cloud/TPP/fake). Can be useful because some features are not supported by a Cloud connection.
 	GetType() ConnectorType
-	// SetProject sets a project (by name) for requests with this connector.
+	// SetProject sets a project (by name) for TPP requests with this connector.
 	SetProject(p string)
+	// SetKeyLabel sets a signing key (by label) for Cloud requests with this connector.
+	SetKeyLabel(label string)
 	// Get codesign protect environment keyid
 	GetEnvironment() (Environment, error)
 	// Get codesign protect environment key algorithm

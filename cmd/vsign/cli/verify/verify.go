@@ -102,7 +102,7 @@ func VerifyCmd(ctx context.Context, verifyOpts options.VerifyOptions, args []str
 		if opts.Compression != magic.CompressedNone {
 			return fmt.Errorf("cannot verify compressed file")
 		}
-		err = mod.Verify(f, verifyOpts, signers.VerifyOpts{TPP: connector, NoDigests: true})
+		err = mod.Verify(f, verifyOpts, signers.VerifyOpts{Platform: connector, NoDigests: true})
 		if err != nil {
 			return fmt.Errorf("verification error: %v", err.Error())
 		}

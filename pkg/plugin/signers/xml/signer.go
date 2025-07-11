@@ -81,12 +81,12 @@ func sign(r io.Reader, certs []*x509.Certificate, opts signers.SignOpts) ([]byte
 	return signedXML, nil
 }
 
-func verify(f *os.File, opts options.VerifyOptions, tppOpts signers.VerifyOpts) error {
+func verify(f *os.File, opts options.VerifyOptions, platformOpts signers.VerifyOpts) error {
 
 	experimental := figure.NewFigure("experimental: XML signing", "", true)
 	experimental.Print()
 
-	if tppOpts.TPP == nil {
+	if platformOpts.Platform == nil {
 		return fmt.Errorf("this plugin currently only supports online certificate verification via TPP.  please use provider TPP configuration via --config parameter")
 	}
 
@@ -100,12 +100,12 @@ func verify(f *os.File, opts options.VerifyOptions, tppOpts signers.VerifyOpts) 
 		}
 	}
 
-	validator, err := xmldsig.NewValidator(string(data), tppOpts)
+	validator, err := xmldsig.NewValidator(string(data), platformOpts)
 	if err != nil {
 		return fmt.Errorf("error with validator")
 	}
 
-	env, err := tppOpts.TPP.GetEnvironment()
+	env, err := platformOpts.Platform.GetEnvironment()
 	if err != nil {
 		return err
 	}

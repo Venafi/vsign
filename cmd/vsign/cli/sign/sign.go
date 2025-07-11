@@ -74,7 +74,7 @@ func SignCmd(ctx context.Context, fs *pflag.FlagSet, signOpts options.SignOption
 	cfg, err := vsign.BuildConfig(ctx, signOpts.Config)
 	if err != nil {
 		//logger.Printf("error building config: %s", err)
-		return fmt.Errorf("error building config")
+		return fmt.Errorf("error building config: %s", err)
 	}
 
 	connector, err := vsign.NewClient(&cfg)
@@ -149,7 +149,7 @@ func SignCmd(ctx context.Context, fs *pflag.FlagSet, signOpts options.SignOption
 	}
 
 	opts := &signers.SignOpts{
-		TPP:       connector,
+		Platform:  connector,
 		KeyID:     env.KeyID,
 		Mechanism: signOpts.Mechanism,
 		Digest:    signOpts.Digest,

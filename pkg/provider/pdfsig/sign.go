@@ -151,7 +151,7 @@ type SignedData struct {
 
 type SignData struct {
 	Signature          SignDataSignature
-	TPPOpts            signers.SignOpts
+	PlatformOpts       signers.SignOpts
 	DigestAlgorithm    crypto.Hash
 	Certificate        *x509.Certificate
 	CertificateChains  [][]*x509.Certificate
@@ -231,7 +231,7 @@ type SignContext struct {
 }
 
 func SignFile(r io.Reader, sign_data SignData) ([]byte, error) {
-	input_file, err := os.Open(sign_data.TPPOpts.Path)
+	input_file, err := os.Open(sign_data.PlatformOpts.Path)
 	if err != nil {
 		return nil, err
 	}

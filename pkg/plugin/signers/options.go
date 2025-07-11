@@ -37,7 +37,7 @@ import (
 )
 
 type SignOpts struct {
-	TPP       endpoint.Connector
+	Platform  endpoint.Connector
 	Mechanism int
 	Digest    string
 	KeyID     string
@@ -80,7 +80,7 @@ func (o SignOpts) Context() context.Context {
 }
 
 type VerifyOpts struct {
-	TPP         endpoint.Connector
+	Platform    endpoint.Connector
 	FileName    string
 	TrustedX509 []*x509.Certificate
 	TrustedPgp  openpgp.EntityList

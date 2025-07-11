@@ -40,7 +40,7 @@ func sign(r io.Reader, certs []*x509.Certificate, opts signers.SignOpts) ([]byte
 		}
 	}
 
-	sig, err := opts.TPP.Sign(&endpoint.SignOption{
+	sig, err := opts.Platform.Sign(&endpoint.SignOption{
 		KeyID:     opts.KeyID,
 		Mechanism: opts.Mechanism,
 		DigestAlg: opts.Digest,

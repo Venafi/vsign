@@ -9,7 +9,9 @@ import (
 const (
 	vSignURL         = "VSIGN_URL"
 	vSignProject     = "VSIGN_PROJECT"
+	vSignKeyLabel    = "VSIGN_KEY_LABEL"
 	vSignToken       = "VSIGN_TOKEN"
+	vSignAPIKey      = "VSIGN_APIKEY"
 	vSignJWT         = "VSIGN_JWT"
 	vSignTrustBundle = "VSIGN_TRUST_BUNDLE"
 )

@@ -111,7 +111,7 @@ func sign(r io.Reader, certs []*x509.Certificate, opts signers.SignOpts) ([]byte
 			CertType:   ctype,
 			DocMDPPerm: pdfsig.AllowFillingExistingFormFieldsAndSignaturesPerms,
 		},
-		TPPOpts:           opts,
+		PlatformOpts:      opts,
 		Appearance:        app,
 		DigestAlgorithm:   hasher,
 		Certificate:       cert.Leaf,

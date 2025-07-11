@@ -37,7 +37,7 @@ type cryptoHash struct {
 // Signer provides options for signing an XML document
 type Signer struct {
 	signatureData
-	tppOpts signers.SignOpts
+	platformOpts signers.SignOpts
 }
 
 // NewSigner returns a *Signer for the XML provided
@@ -48,7 +48,7 @@ func NewSigner(xml []byte, opts signers.SignOpts) (*Signer, error) {
 		return nil, err
 	}
 	// TODO TPP configuration input validation
-	s := &Signer{tppOpts: opts, signatureData: signatureData{xml: doc}}
+	s := &Signer{platformOpts: opts, signatureData: signatureData{xml: doc}}
 	return s, nil
 }
 
@@ -146,19 +146,19 @@ func (s *Signer) setSignature() error {
 	}
 	switch signingAlgorithm.algorithm {
 	case "rsa":
-		signature, err = s.tppOpts.TPP.Sign(&endpoint.SignOption{
-			KeyID:     s.tppOpts.KeyID,
+		signature, err = s.platformOpts.Platform.Sign(&endpoint.SignOption{
+			KeyID:     s.platformOpts.KeyID,
 			Mechanism: c.RsaPkcs,
-			DigestAlg: s.tppOpts.Digest,
+			DigestAlg: s.platformOpts.Digest,
 			Payload:   []byte(c.EncodeBase64([]byte(canonSignedInfo))),
 			B64Flag:   true,
 			RawFlag:   false,
 		})
 	case "ecdsa":
-		signature, err = s.tppOpts.TPP.Sign(&endpoint.SignOption{
-			KeyID:     s.tppOpts.KeyID,
+		signature, err = s.platformOpts.Platform.Sign(&endpoint.SignOption{
+			KeyID:     s.platformOpts.KeyID,
 			Mechanism: c.EcDsa,
-			DigestAlg: s.tppOpts.Digest,
+			DigestAlg: s.platformOpts.Digest,
 			Payload:   []byte(c.EncodeBase64([]byte(canonSignedInfo))),
 			B64Flag:   true,
 			RawFlag:   false,

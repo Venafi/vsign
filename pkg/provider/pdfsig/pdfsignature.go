@@ -401,10 +401,10 @@ func signAttributes(attrs []attribute, pKey crypto.PublicKey, sd SignData) ([]by
 
 	switch pKey.(type) {
 	case *rsa.PublicKey:
-		signature, err = sd.TPPOpts.TPP.Sign(&endpoint.SignOption{
-			KeyID:     sd.TPPOpts.KeyID,
+		signature, err = sd.PlatformOpts.Platform.Sign(&endpoint.SignOption{
+			KeyID:     sd.PlatformOpts.KeyID,
 			Mechanism: c.RsaPkcs,
-			DigestAlg: sd.TPPOpts.Digest,
+			DigestAlg: sd.PlatformOpts.Digest,
 			Payload:   []byte(c.EncodeBase64(attrBytes)),
 			B64Flag:   true,
 			RawFlag:   false,
@@ -413,10 +413,10 @@ func signAttributes(attrs []attribute, pKey crypto.PublicKey, sd SignData) ([]by
 			return nil, err
 		}
 	case *ecdsa.PublicKey:
-		signature, err = sd.TPPOpts.TPP.Sign(&endpoint.SignOption{
-			KeyID:     sd.TPPOpts.KeyID,
+		signature, err = sd.PlatformOpts.Platform.Sign(&endpoint.SignOption{
+			KeyID:     sd.PlatformOpts.KeyID,
 			Mechanism: c.EcDsa,
-			DigestAlg: sd.TPPOpts.Digest,
+			DigestAlg: sd.PlatformOpts.Digest,
 			Payload:   []byte(c.EncodeBase64(attrBytes)),
 			B64Flag:   true,
 			RawFlag:   false,

@@ -647,3 +647,7 @@ func (c *Connector) GetJwksX5u(cert *x509.Certificate) (string, error) {
 	}
 
 }
+
+func (c *Connector) SetKeyLabel(label string) {
+	panic("operation not supported for tpp")
+}

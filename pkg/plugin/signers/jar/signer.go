@@ -69,7 +69,7 @@ func sign(r io.Reader, certs []*x509.Certificate, opts signers.SignOpts) ([]byte
 	if err != nil {
 		return nil, err
 	}
-	patch, ts, err := digest.Sign(opts.Context(), &cert, opts.KeyLabel, argSectionsOnly, argInlineSignature, argApkV2, opts.TPP)
+	patch, ts, err := digest.Sign(opts.Context(), &cert, opts.KeyLabel, argSectionsOnly, argInlineSignature, argApkV2, opts.Platform)
 	if err != nil {
 		return nil, err
 	}
@@ -77,11 +77,11 @@ func sign(r io.Reader, certs []*x509.Certificate, opts signers.SignOpts) ([]byte
 	return opts.SetBinPatch(patch)
 }
 
-func verify(f *os.File, opts options.VerifyOptions, tppOpts signers.VerifyOpts) error {
+func verify(f *os.File, opts options.VerifyOptions, platformOpts signers.VerifyOpts) error {
 	experimental := figure.NewFigure("experimental: Jar signing", "", true)
 	experimental.Print()
 
-	if tppOpts.TPP == nil {
+	if platformOpts.Platform == nil {
 		return fmt.Errorf("this plugin currently only supports online certificate verification via TPP.  please use provider TPP configuration via --config parameter")
 	}
 
@@ -89,7 +89,7 @@ func verify(f *os.File, opts options.VerifyOptions, tppOpts signers.VerifyOpts) 
 	if err != nil {
 		return err
 	}
-	_, err = jar.Verify(inz, tppOpts.NoDigests)
+	_, err = jar.Verify(inz, platformOpts.NoDigests)
 	if err != nil {
 		return err
 	}

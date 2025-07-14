@@ -257,7 +257,7 @@ func TestSignVerifyOnline(t *testing.T) {
 	fs.String("digest", "sha256", "digest")
 	fs.Int("mechanism", 1, "mechanism")
 
-	must(sign.SignCmd(ctx, fs, options.SignOptions{Config: configPath, OutputSignature: signaturePath, ImageRef: "", PayloadPath: payloadPath, Mechanism: 1, Digest: "sha512"}, nil), t)
+	must(sign.SignCmd(ctx, fs, options.SignOptions{Config: configPath, OutputSignature: signaturePath, ImageRef: "", PayloadPath: payloadPath, Mechanism: 1, Digest: "sha256"}, nil), t)
 	must(verify.VerifyCmd(ctx, options.VerifyOptions{Config: configPath, SignaturePath: signaturePath, PayloadPath: payloadPath, Digest: "sha256"}, nil), t)
 }
 

@@ -85,6 +85,7 @@ type VerifyOpts struct {
 	TrustedX509 []*x509.Certificate
 	TrustedPgp  openpgp.EntityList
 	TrustedPool *x509.CertPool
+	PublicKey   crypto.PublicKey
 	NoDigests   bool
 	NoChain     bool
 	Content     string

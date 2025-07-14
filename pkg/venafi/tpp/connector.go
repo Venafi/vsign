@@ -232,11 +232,16 @@ func (c *Connector) GetEnvironment() (env endpoint.Environment, err error) {
 			if err != nil {
 				return endpoint.Environment{}, err
 			}
-			certs, err := parseGetObjectsResult(statusCode, status, body)
+			certs, _, err := parseGetObjectsResult(statusCode, status, body)
 			if err != nil {
 				return endpoint.Environment{}, err
 			}
 			env.CertificateChainData = certs
+			c, err := crypto.ParseCertificates(certs)
+			if err != nil {
+				return endpoint.Environment{}, err
+			}
+			env.PublicKey = c[0].PublicKey
 		} else {
 			certReq := certificateRetrieveRequest{CertificateDN: env.CertificateDN, Format: "Base64", IncludeChain: true}
 			statusCode, status, body, err = c.request("POST", urlResourceCertificateRetrieve, certReq)
@@ -248,7 +253,24 @@ func (c *Connector) GetEnvironment() (env endpoint.Environment, err error) {
 				return endpoint.Environment{}, err
 			}
 			env.CertificateChainData = certs
+			c, err := crypto.ParseCertificates(certs)
+			if err != nil {
+				return endpoint.Environment{}, err
+			}
+			env.PublicKey = c[0].PublicKey
 		}
+	} else {
+		// Assuming TPP version > 22.x
+		certReq := getObjectsRequest{KeyID: env.KeyID, IncludeChain: true, Experimental: true}
+		statusCode, status, body, err = c.request("POST", urlResourceCodeSignGetObjects, certReq)
+		if err != nil {
+			return endpoint.Environment{}, err
+		}
+		_, pubKey, err := parseGetObjectsResult(statusCode, status, body)
+		if err != nil {
+			return endpoint.Environment{}, err
+		}
+		env.PublicKey = pubKey
 	}
 
 	return env, nil

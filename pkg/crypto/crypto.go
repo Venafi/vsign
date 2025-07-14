@@ -66,6 +66,10 @@ const Mgf1Sha256 = 2
 const Mgf1Sha384 = 3
 const Mgf1Sha512 = 4
 
+const CryptokiKeyRSA = 0
+const CryptokiKeyEC = 3
+const CryptoKiKeyEC_Edwards = 64
+
 // Experimental PQC support
 const MlDsa = 2147483650
 const SlhDsa = 2147483652
@@ -164,25 +168,10 @@ func EncodeHex(data []byte) string {
 	return hex.EncodeToString(data)
 }
 
-func Verify(data []byte, signature []byte, digest string, publicKeyPath string) error {
+func VerifyWithPublicKey(data []byte, signature []byte, digest string, publicKey crypto.PublicKey) error {
 
 	hasher, hashAlgo, _ := GetHasher(digest)
 	hasher.Write([]byte(data))
-
-	pemBytes, err := os.ReadFile(publicKeyPath)
-	if err != nil {
-		return fmt.Errorf("public key not found: %v", err.Error())
-	}
-
-	block, _ := pem.Decode(pemBytes)
-	if block == nil {
-		return fmt.Errorf("failed to parse PEM block containing the public key")
-	}
-
-	publicKey, err := x509.ParsePKIXPublicKey(block.Bytes)
-	if err != nil {
-		return fmt.Errorf("failed to parse public key")
-	}
 
 	switch publicKey := publicKey.(type) {
 	case *ecdsa.PublicKey:
@@ -198,7 +187,6 @@ func Verify(data []byte, signature []byte, digest string, publicKeyPath string) 
 			keySize = 32
 		}
 		if len(signature) != 2*keySize {
-			println("test")
 			return ErrECDSAVerification
 		}
 		r := big.NewInt(0).SetBytes(signature[:keySize])
@@ -223,6 +211,27 @@ func Verify(data []byte, signature []byte, digest string, publicKeyPath string) 
 
 	//Verification successful
 	return nil
+
+}
+
+func Verify(data []byte, signature []byte, digest string, publicKeyPath string) error {
+
+	pemBytes, err := os.ReadFile(publicKeyPath)
+	if err != nil {
+		return fmt.Errorf("public key not found: %v", err.Error())
+	}
+
+	block, _ := pem.Decode(pemBytes)
+	if block == nil {
+		return fmt.Errorf("failed to parse PEM block containing the public key")
+	}
+
+	publicKey, err := x509.ParsePKIXPublicKey(block.Bytes)
+	if err != nil {
+		return fmt.Errorf("failed to parse public key")
+	}
+
+	return VerifyWithPublicKey(data, signature, digest, publicKey)
 }
 
 func ParsePEM(data []byte) ([]*x509.Certificate, error) {

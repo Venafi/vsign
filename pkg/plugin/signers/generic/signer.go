@@ -55,7 +55,7 @@ func sign(r io.Reader, certs []*x509.Certificate, opts signers.SignOpts) ([]byte
 	return sig, nil
 }
 
-func verify(f *os.File, opts options.VerifyOptions, tppOpts signers.VerifyOpts) error {
+func verify(f *os.File, opts options.VerifyOptions, platformOpts signers.VerifyOpts) error {
 
 	data, err := os.ReadFile(opts.PayloadPath)
 	if err != nil {
@@ -66,9 +66,23 @@ func verify(f *os.File, opts options.VerifyOptions, tppOpts signers.VerifyOpts) 
 		return fmt.Errorf("error with signature path")
 	}
 
-	err = c.Verify(data, signed, opts.Digest, opts.PublicKeyPath)
-	if err != nil {
-		return fmt.Errorf("verification failure: %v", err.Error())
+	if opts.PublicKeyPath != "" {
+
+		err = c.Verify(data, signed, opts.Digest, opts.PublicKeyPath)
+		if err != nil {
+			return fmt.Errorf("verification failure: %v", err.Error())
+		}
+		return nil
+	} else {
+		env, err := platformOpts.Platform.GetEnvironment()
+		if err != nil {
+			return fmt.Errorf("getenvironment failure: %v", err.Error())
+		}
+		err = c.VerifyWithPublicKey(data, signed, opts.Digest, env.PublicKey)
+		if err != nil {
+			return fmt.Errorf("verification failure: %v", err.Error())
+		}
+		return nil
 	}
-	return nil
+
 }

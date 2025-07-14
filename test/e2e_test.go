@@ -229,6 +229,38 @@ func TestPDFSign(t *testing.T) {
 
 }
 
+func TestSignVerifyOnline(t *testing.T) {
+	ctx := context.Background()
+
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := os.Chdir("./"); err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		os.Chdir(wd)
+	}()
+
+	configPath := filepath.Join("./", "config.ini")
+	payloadPath := filepath.Join("./", "payload.txt")
+
+	//Test RSAPKCS SHA256
+	signaturePath := filepath.Join("./", "testrsa2048sha256.sig")
+
+	fs := pflag.NewFlagSet("sign", pflag.ContinueOnError)
+	fs.String("config", configPath, "config")
+	fs.String("payload", payloadPath, "payload")
+	fs.String("output-signature", signaturePath, "signature")
+	fs.String("digest", "sha256", "digest")
+	fs.Int("mechanism", 1, "mechanism")
+
+	must(sign.SignCmd(ctx, fs, options.SignOptions{Config: configPath, OutputSignature: signaturePath, ImageRef: "", PayloadPath: payloadPath, Mechanism: 1, Digest: "sha512"}, nil), t)
+	must(verify.VerifyCmd(ctx, options.VerifyOptions{Config: configPath, SignaturePath: signaturePath, PayloadPath: payloadPath, Digest: "sha256"}, nil), t)
+}
+
 func must(err error, t *testing.T) {
 	t.Helper()
 	if err != nil {

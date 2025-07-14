@@ -129,7 +129,7 @@ func BuildConfig(c context.Context, config string) (cfg Config, err error) {
 			cfg.KeyLabel = keyLabel
 		} else {
 			if cfg.ConnectorType == endpoint.ConnectorTypeCloud {
-				return cfg, fmt.Errorf("a valid venafi cloud key lable is required")
+				return cfg, fmt.Errorf("a valid venafi cloud key label is required")
 			}
 		}
 

@@ -2,15 +2,22 @@ package cloud
 
 import (
 	"bytes"
+	"crypto"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rsa"
 	"crypto/tls"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
+	"math/big"
 	"net"
 	"net/http"
 	"time"
 
 	"github.com/rs/zerolog/log"
+	c "github.com/venafi/vsign/pkg/crypto"
 	"github.com/venafi/vsign/pkg/util"
 )
 
@@ -58,14 +65,22 @@ type Certificate struct {
 	Value string `json:",omitempty"`
 }
 
-type PrivateKey struct {
-	KeyId string `json:"KeyId,omitempty"`
-	Label string `json:"Label,omitempty"`
+type PublicKey struct {
+	KeyId    string `json:"KeyId,omitempty"`
+	Label    string `json:"Label,omitempty"`
+	KeyType  int    `json:"KeyType,omitempty"`  // 0=RSA, 3=EC
+	ECPoint  string `json:"ECPoint,omitempty"`  // EC only
+	Params   string `json:"Params,omitempty"`   // EC only
+	Curve    string `json:"Curve,omitempty"`    // EC only
+	Bits     int    `json:"Bits,omitempty"`     // RSA only
+	Exponent string `json:"Exponent,omitempty"` // RSA only
+	Modulus  string `json:"Modulus,omitempty"`  // RSA only
+
 }
 
 type getObjectsResponse struct {
 	Certificates []Certificate `json:",omitempty"`
-	PrivateKeys  []PrivateKey  `json:",omitempty"`
+	PublicKeys   []PublicKey   `json:",omitempty"`
 }
 
 const (
@@ -161,21 +176,81 @@ func (c *Connector) getHTTPClient() *http.Client {
 	return c.client
 }
 
-func parseGetObjectsResult(httpStatusCode int, httpStatus string, body []byte, label string) (string, error) {
+func parseGetObjectsResult(httpStatusCode int, httpStatus string, body []byte, label string) (string, crypto.PublicKey, error) {
 	switch httpStatusCode {
 	case http.StatusOK, http.StatusCreated:
 		log.Trace().Msgf(string(urlResourceCodeSignGetObjects)+" response:\n%s\n", string(body))
 		reqData, err := parseGetObjectsData(body)
 		if err != nil {
-			return "", err
+			return "", nil, err
 		}
-		for _, pKey := range reqData.PrivateKeys {
+		for _, pKey := range reqData.PublicKeys {
 			if pKey.Label == label {
-				return pKey.KeyId, nil
+
+				switch pKey.KeyType {
+				case c.CryptokiKeyRSA:
+					decodedModulus, err := base64.StdEncoding.DecodeString(pKey.Modulus)
+					if err != nil {
+						return "", nil, err
+					}
+					decodedExponent, err := base64.StdEncoding.DecodeString(pKey.Exponent)
+					if err != nil {
+						return "", nil, err
+					}
+
+					modulus := new(big.Int).SetBytes(decodedModulus)
+					exponent := new(big.Int).SetBytes(decodedExponent)
+
+					publicKey := &rsa.PublicKey{
+						N: modulus,
+						E: int(exponent.Int64()), // Assuming exponent fits in an int64
+					}
+
+					return pKey.KeyId, publicKey, nil
+				case c.CryptokiKeyEC:
+
+					// 1. Decode Base64 parameters
+					decodedBytes, err := base64.StdEncoding.DecodeString(pKey.ECPoint)
+					if err != nil {
+						fmt.Printf("Error decoding X: %v\n", err)
+						return "", nil, err
+					}
+
+					switch pKey.Curve {
+					case "P256":
+						pubKey := &ecdsa.PublicKey{
+							Curve: elliptic.P256(),
+							X:     big.NewInt(0).SetBytes(decodedBytes[1:33]),
+							Y:     big.NewInt(0).SetBytes(decodedBytes[33:]),
+						}
+						return pKey.KeyId, pubKey, nil
+					case "P384":
+						pubKey := &ecdsa.PublicKey{
+							Curve: elliptic.P384(),
+							X:     big.NewInt(0).SetBytes(decodedBytes[1:49]),
+							Y:     big.NewInt(0).SetBytes(decodedBytes[49:]),
+						}
+						return pKey.KeyId, pubKey, nil
+					case "P521":
+						pubKey := &ecdsa.PublicKey{
+							Curve: elliptic.P521(),
+							X:     big.NewInt(0).SetBytes(decodedBytes[1:67]),
+							Y:     big.NewInt(0).SetBytes(decodedBytes[67:]),
+						}
+						return pKey.KeyId, pubKey, nil
+					default:
+						return "", nil, fmt.Errorf("unknown curve public key")
+
+					}
+
+				default:
+					return "", nil, fmt.Errorf("cannot decode public key with keytype: %d", pKey.KeyType)
+				}
+
 			}
 		}
 
-		return "", fmt.Errorf("cannot retrieve keyid with label %s", label)
+		return "", nil, fmt.Errorf("cannot retrieve keyid with label %s", label)
 
 		/*certChain := make([][]byte, 0, len(reqData.Certificates))
 		for _, cert := range reqData.Certificates {
@@ -193,7 +268,7 @@ func parseGetObjectsResult(httpStatusCode int, httpStatus string, body []byte, l
 
 		return certChain, nil*/
 	default:
-		return "", fmt.Errorf("unexpected status code on TPP Environment Request.\n Status:\n %s. \n Body:\n %s", httpStatus, body)
+		return "", nil, fmt.Errorf("unexpected status code on TPP Environment Request.\n Status:\n %s. \n Body:\n %s", httpStatus, body)
 	}
 
 }

@@ -1,6 +1,7 @@
 package endpoint
 
 import (
+	"crypto"
 	"crypto/x509"
 	"fmt"
 	"log"
@@ -87,4 +88,5 @@ type Environment struct {
 	KeyAlgorithm         string
 	CertificateDN        string
 	CertificateChainData [][]byte
+	PublicKey            crypto.PublicKey
 }

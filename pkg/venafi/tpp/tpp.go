@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto"
 	"crypto/ecdsa"
+	"crypto/ed25519"
 	"crypto/elliptic"
 	"crypto/rsa"
 	"crypto/tls"
@@ -373,6 +374,17 @@ func parseGetObjectsResult(httpStatusCode int, httpStatus string, body []byte) (
 					E: int(exponent.Int64()), // Assuming exponent fits in an int64
 				}
 
+				return nil, publicKey, nil
+			case c.CryptoKiKeyEC_Edwards:
+				// Decode the Base64 string to bytes
+				decodedBytes, err := base64.StdEncoding.DecodeString(reqData.PublicKeys[0].ECPoint)
+				if err != nil {
+					fmt.Println("Error decoding Base64:", err)
+					return nil, nil, err
+				}
+
+				// Import the public key
+				publicKey := ed25519.PublicKey(decodedBytes)
 				return nil, publicKey, nil
 			case c.CryptokiKeyEC:
 

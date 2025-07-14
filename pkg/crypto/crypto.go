@@ -68,6 +68,7 @@ const Mgf1Sha512 = 4
 
 const CryptokiKeyRSA = 0
 const CryptokiKeyEC = 3
+const CryptoKiKeyEC_Edwards = 64
 
 // Experimental PQC support
 const MlDsa = 2147483650

@@ -3,6 +3,8 @@ package util
 import (
 	"regexp"
 	"strings"
+
+	"github.com/rs/zerolog"
 )
 
 func NormalizeUrl(url string) string {
@@ -17,4 +19,28 @@ func NormalizeUrl(url string) string {
 		modified = modified + "/"
 	}
 	return modified
+}
+
+func SetLogLevel(level string) {
+
+	switch level {
+	case "trace":
+		zerolog.SetGlobalLevel(zerolog.TraceLevel)
+	case "debug":
+		zerolog.SetGlobalLevel(zerolog.DebugLevel)
+	case "info":
+		zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	case "warn":
+		zerolog.SetGlobalLevel(zerolog.WarnLevel)
+	case "error":
+		zerolog.SetGlobalLevel(zerolog.ErrorLevel)
+	case "fatal":
+		zerolog.SetGlobalLevel(zerolog.FatalLevel)
+	case "panic":
+		zerolog.SetGlobalLevel(zerolog.PanicLevel)
+	case "disabled":
+		zerolog.SetGlobalLevel(zerolog.Disabled)
+	default:
+		zerolog.SetGlobalLevel(zerolog.Disabled)
+	}
 }

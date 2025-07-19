@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/venafi/vsign/pkg/endpoint"
+	"github.com/venafi/vsign/pkg/util"
 	"gopkg.in/ini.v1"
 )
 
@@ -87,6 +88,9 @@ func BuildConfig(c context.Context, config string) (cfg Config, err error) {
 		token := getPropertyFromEnvironment(vSignToken)   // TPP environment variable
 		jwt := getPropertyFromEnvironment(vSignJWT)       // TPP environment variable
 		apiKey := getPropertyFromEnvironment(vSignAPIKey) // Cloud environment variable
+
+		// Set log level
+		util.SetLogLevel(getPropertyFromEnvironment(vSignLogLevel))
 
 		url := getPropertyFromEnvironment(vSignURL)
 		if url != "" {
@@ -230,6 +234,12 @@ func loadConfigFromFile(path, section string) (cfg Config, err error) {
 		auth.JWT = m["jwt"]
 	}
 
+	if m.has("log_level") {
+		util.SetLogLevel(m["log_level"])
+	} else {
+		util.SetLogLevel("disabled")
+	}
+
 	if m.has("trust_bundle") {
 		fname, err := expand(m["trust_bundle"])
 		if err != nil {
@@ -287,6 +297,7 @@ func validateSection(s *ini.Section) error {
 		"jwt":          true,
 		"tpp_project":  true,
 		"trust_bundle": true,
+		"log_level":    true,
 	}
 
 	var CloudValidKeys set = map[string]bool{

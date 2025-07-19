@@ -24,6 +24,7 @@ import (
 
 	"github.com/venafi/vsign/cmd/vsign/cli/shared"
 	"github.com/venafi/vsign/pkg/plugin/signers"
+	"github.com/venafi/vsign/pkg/util"
 )
 
 /*var (
@@ -51,7 +52,7 @@ func New() *cobra.Command {
 				zerolog.SetGlobalLevel(zerolog.Disabled)
 			}*/
 
-			switch rootOpts.verbosity {
+			/*switch rootOpts.verbosity {
 			case "trace":
 				zerolog.SetGlobalLevel(zerolog.TraceLevel)
 			case "debug":
@@ -68,7 +69,8 @@ func New() *cobra.Command {
 				zerolog.SetGlobalLevel(zerolog.PanicLevel)
 			default:
 				zerolog.SetGlobalLevel(zerolog.InfoLevel)
-			}
+			}*/
+			util.SetLogLevel(rootOpts.verbosity)
 
 			return nil
 		},

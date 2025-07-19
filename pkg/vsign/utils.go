@@ -14,6 +14,7 @@ const (
 	vSignAPIKey      = "VSIGN_APIKEY"
 	vSignJWT         = "VSIGN_JWT"
 	vSignTrustBundle = "VSIGN_TRUST_BUNDLE"
+	vSignLogLevel    = "VSIGN_LOG_LEVEL"
 )
 
 func getPropertyFromEnvironment(s string) string {

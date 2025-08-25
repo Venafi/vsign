@@ -224,7 +224,7 @@ require (
 )
 
 require (
-	github.com/beevik/etree v1.5.1
+	github.com/beevik/etree v1.6.0
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/google/go-containerregistry v0.20.6
 	github.com/mitchellh/mapstructure v1.5.1-0.20231216201459-8508981c8b6c // indirect

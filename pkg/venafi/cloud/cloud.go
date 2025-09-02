@@ -7,6 +7,7 @@ import (
 	"crypto/elliptic"
 	"crypto/rsa"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -63,6 +64,8 @@ type getObjectsRequest struct {
 
 type Certificate struct {
 	Value string `json:",omitempty"`
+	Label string `json:"Label,omitempty"`
+	KeyId string `json:"KeyId,omitempty"`
 }
 
 type PublicKey struct {
@@ -176,81 +179,100 @@ func (c *Connector) getHTTPClient() *http.Client {
 	return c.client
 }
 
-func parseGetObjectsResult(httpStatusCode int, httpStatus string, body []byte, label string) (string, crypto.PublicKey, error) {
+func parseGetObjectsResult(httpStatusCode int, httpStatus string, body []byte, label string) (string, [][]byte, crypto.PublicKey, error) {
 	switch httpStatusCode {
 	case http.StatusOK, http.StatusCreated:
 		log.Trace().Msgf(string(urlResourceCodeSignGetObjects)+" response:\n%s\n", string(body))
 		reqData, err := parseGetObjectsData(body)
 		if err != nil {
-			return "", nil, err
+			return "", nil, nil, err
 		}
-		for _, pKey := range reqData.PublicKeys {
-			if pKey.Label == label {
-
-				switch pKey.KeyType {
-				case c.CryptokiKeyRSA:
-					decodedModulus, err := base64.StdEncoding.DecodeString(pKey.Modulus)
+		if len(reqData.Certificates) > 0 {
+			certChain := make([][]byte, 0, 1)
+			for _, cert := range reqData.Certificates {
+				if cert.Label == label {
+					decData, err := base64.StdEncoding.DecodeString(cert.Value)
 					if err != nil {
-						return "", nil, err
+						return "", nil, nil, fmt.Errorf("failed to decode base64 certificate")
 					}
-					decodedExponent, err := base64.StdEncoding.DecodeString(pKey.Exponent)
+					c, err := x509.ParseCertificate(decData)
 					if err != nil {
-						return "", nil, err
+						return "", nil, nil, fmt.Errorf("error parsing certificate")
 					}
-
-					modulus := new(big.Int).SetBytes(decodedModulus)
-					exponent := new(big.Int).SetBytes(decodedExponent)
-
-					publicKey := &rsa.PublicKey{
-						N: modulus,
-						E: int(exponent.Int64()), // Assuming exponent fits in an int64
-					}
-
-					return pKey.KeyId, publicKey, nil
-				case c.CryptokiKeyEC:
-
-					// 1. Decode Base64 parameters
-					decodedBytes, err := base64.StdEncoding.DecodeString(pKey.ECPoint)
-					if err != nil {
-						fmt.Printf("Error decoding X: %v\n", err)
-						return "", nil, err
-					}
-
-					switch pKey.Curve {
-					case "P256":
-						pubKey := &ecdsa.PublicKey{
-							Curve: elliptic.P256(),
-							X:     big.NewInt(0).SetBytes(decodedBytes[1:33]),
-							Y:     big.NewInt(0).SetBytes(decodedBytes[33:]),
-						}
-						return pKey.KeyId, pubKey, nil
-					case "P384":
-						pubKey := &ecdsa.PublicKey{
-							Curve: elliptic.P384(),
-							X:     big.NewInt(0).SetBytes(decodedBytes[1:49]),
-							Y:     big.NewInt(0).SetBytes(decodedBytes[49:]),
-						}
-						return pKey.KeyId, pubKey, nil
-					case "P521":
-						pubKey := &ecdsa.PublicKey{
-							Curve: elliptic.P521(),
-							X:     big.NewInt(0).SetBytes(decodedBytes[1:67]),
-							Y:     big.NewInt(0).SetBytes(decodedBytes[67:]),
-						}
-						return pKey.KeyId, pubKey, nil
-					default:
-						return "", nil, fmt.Errorf("unknown curve public key")
-
-					}
-
-				default:
-					return "", nil, fmt.Errorf("cannot decode public key with keytype: %d", pKey.KeyType)
+					certChain = append(certChain, c.Raw)
+					return cert.KeyId, certChain, nil, nil
 				}
+			}
+			return "", nil, nil, fmt.Errorf("failed to retrieve certificate")
+		} else {
+			for _, pKey := range reqData.PublicKeys {
+				if pKey.Label == label {
 
+					switch pKey.KeyType {
+					case c.CryptokiKeyRSA:
+						decodedModulus, err := base64.StdEncoding.DecodeString(pKey.Modulus)
+						if err != nil {
+							return "", nil, nil, err
+						}
+						decodedExponent, err := base64.StdEncoding.DecodeString(pKey.Exponent)
+						if err != nil {
+							return "", nil, nil, err
+						}
+
+						modulus := new(big.Int).SetBytes(decodedModulus)
+						exponent := new(big.Int).SetBytes(decodedExponent)
+
+						publicKey := &rsa.PublicKey{
+							N: modulus,
+							E: int(exponent.Int64()), // Assuming exponent fits in an int64
+						}
+
+						return pKey.KeyId, nil, publicKey, nil
+					case c.CryptokiKeyEC:
+
+						// 1. Decode Base64 parameters
+						decodedBytes, err := base64.StdEncoding.DecodeString(pKey.ECPoint)
+						if err != nil {
+							fmt.Printf("Error decoding X: %v\n", err)
+							return "", nil, nil, err
+						}
+
+						switch pKey.Curve {
+						case "P256":
+							pubKey := &ecdsa.PublicKey{
+								Curve: elliptic.P256(),
+								X:     big.NewInt(0).SetBytes(decodedBytes[1:33]),
+								Y:     big.NewInt(0).SetBytes(decodedBytes[33:]),
+							}
+							return pKey.KeyId, nil, pubKey, nil
+						case "P384":
+							pubKey := &ecdsa.PublicKey{
+								Curve: elliptic.P384(),
+								X:     big.NewInt(0).SetBytes(decodedBytes[1:49]),
+								Y:     big.NewInt(0).SetBytes(decodedBytes[49:]),
+							}
+							return pKey.KeyId, nil, pubKey, nil
+						case "P521":
+							pubKey := &ecdsa.PublicKey{
+								Curve: elliptic.P521(),
+								X:     big.NewInt(0).SetBytes(decodedBytes[1:67]),
+								Y:     big.NewInt(0).SetBytes(decodedBytes[67:]),
+							}
+							return pKey.KeyId, nil, pubKey, nil
+						default:
+							return "", nil, nil, fmt.Errorf("unknown curve public key")
+
+						}
+
+					default:
+						return "", nil, nil, fmt.Errorf("cannot decode public key with keytype: %d", pKey.KeyType)
+					}
+
+				}
 			}
 		}
 
-		return "", nil, fmt.Errorf("cannot retrieve keyid with label %s", label)
+		return "", nil, nil, fmt.Errorf("cannot retrieve keyid with label %s", label)
 
 		/*certChain := make([][]byte, 0, len(reqData.Certificates))
 		for _, cert := range reqData.Certificates {
@@ -268,7 +290,7 @@ func parseGetObjectsResult(httpStatusCode int, httpStatus string, body []byte, l
 
 		return certChain, nil*/
 	default:
-		return "", nil, fmt.Errorf("unexpected status code on TPP Environment Request.\n Status:\n %s. \n Body:\n %s", httpStatus, body)
+		return "", nil, nil, fmt.Errorf("unexpected status code on TPP Environment Request.\n Status:\n %s. \n Body:\n %s", httpStatus, body)
 	}
 
 }

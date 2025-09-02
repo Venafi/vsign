@@ -62,11 +62,11 @@ func (c *Connector) GetKeyID(label string) (endpoint.Environment, error) {
 	if err != nil {
 		return endpoint.Environment{}, err
 	}
-	keyId, publicKey, err := parseGetObjectsResult(statusCode, status, body, label)
+	keyId, certs, publicKey, err := parseGetObjectsResult(statusCode, status, body, label)
 	if err != nil {
 		return endpoint.Environment{}, err
 	}
-	return endpoint.Environment{KeyID: keyId, PublicKey: publicKey}, nil
+	return endpoint.Environment{KeyID: keyId, CertificateChainData: certs, PublicKey: publicKey}, nil
 
 }
 

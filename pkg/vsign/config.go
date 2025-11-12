@@ -304,6 +304,7 @@ func validateSection(s *ini.Section) error {
 		"url":            true,
 		"cloud_apikey":   true,
 		"cloud_keylabel": true,
+		"log_level":      true,
 	}
 
 	//fmt.Fprintf(os.Stdout, "Validating configuration section %s", s.Name())

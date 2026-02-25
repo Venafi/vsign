@@ -203,7 +203,7 @@ require (
 require (
 	github.com/beevik/etree v1.6.0
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
-	github.com/google/go-containerregistry v0.21.0
+	github.com/google/go-containerregistry v0.21.1
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
 	github.com/rs/zerolog v1.34.0
 	github.com/sassoftware/relic/v7 v7.6.2

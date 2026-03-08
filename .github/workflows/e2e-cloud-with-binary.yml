@@ -23,7 +23,7 @@ jobs:
       VSIGN_URL: ${{ secrets.CLOUD_URL }}
       VSIGN_CLIENT_ID: ${{ secrets.CLOUD_SA_CLIENTID }}
       VSIGN_PRIVATE_KEY_FILE: ${{ github.workspace }}/sa.key
-      VSIGN_KEYLABEL: ${{ secrets.CLOUD_KEYLABEL }}
+      VSIGN_KEY_LABEL: ${{ secrets.CLOUD_KEYLABEL }}
       IMAGE: docker.io/zosocanuck/cert-manager-dashboard:0.1
 
     steps:

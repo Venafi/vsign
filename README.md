@@ -95,7 +95,7 @@ certificate scope needed by some parts of vSign library for retrieving code sign
 VSIGN_URL = "https://api.venafi.cloud"
 VSIGN_APIKEY = "xxx"
 VSIGN_CLIENT_ID = "xxxxxxx"
-VSIGN_KEYLABEL="{project}-{signing-key}"
+VSIGN_KEY_LABEL="{project}-{signing-key}"
 VSIGN_PRIVATE_KEY_FILE = "/path/to/service-account-private-key-file.key"
 ```
 

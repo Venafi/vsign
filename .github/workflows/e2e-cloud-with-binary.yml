@@ -42,7 +42,8 @@ jobs:
         uses: DamianReeves/write-file-action@v1.0
         with:
           path: ${{ github.workspace }}/sa.key
-          contents: ${{ secrets.CLOUD_SA_PRIVATE_KEY }}
+          contents: |
+            ${{ secrets.CLOUD_SA_PRIVATE_KEY }}
       - name: build vsign and check
         shell: bash
         run: |

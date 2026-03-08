@@ -44,7 +44,7 @@ jobs:
         with:
           path: ${{ github.workspace }}/sa.key
           contents: |
-            ${{ secrets.CLOUD_SA_PRIVATE_KEY }}
+            ${{ secrets.CLOUD_SA_PRIVATEKEY }}
       - name: build vsign and check
         shell: bash
         run: |

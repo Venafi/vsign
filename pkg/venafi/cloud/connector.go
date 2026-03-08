@@ -1,10 +1,18 @@
 package cloud
 
 import (
+	"crypto/ecdsa"
+	"crypto/rsa"
 	"crypto/x509"
+	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
+	"time"
 
+	"github.com/golang-jwt/jwt/v4"
+	"github.com/google/uuid"
+	"github.com/rs/zerolog/log"
 	"github.com/venafi/vsign/pkg/crypto"
 	"github.com/venafi/vsign/pkg/endpoint"
 	"github.com/venafi/vsign/pkg/util"
@@ -58,7 +66,10 @@ func (c *Connector) Ping() (err error) {
 }
 
 func (c *Connector) GetKeyID(label string) (endpoint.Environment, error) {
-	statusCode, status, body, err := c.request("POST", urlResourceCodeSignGetObjects, nil)
+	req := getObjectsRequest{LabelFilter: []string{label}, IncludeChain: true}
+	statusCode, status, body, err := c.request("POST", urlResourceCodeSignGetObjects, req)
+	//statusCode, status, body, err := c.request("POST", urlResourceCodeSignGetObjects, nil)
+
 	if err != nil {
 		return endpoint.Environment{}, err
 	}
@@ -167,6 +178,18 @@ func (c *Connector) Authenticate(auth *endpoint.Authentication) (err error) {
 		auth.ClientId = endpoint.DefaultClientID
 	}
 
+	if auth.ServiceAccountClientId != "" && auth.ServiceAccountKeyFile != "" {
+		result, err := processAuthData(c, urlResourceAuthorizeServiceAccount, auth)
+		if err != nil {
+			return err
+		}
+		resp := result.(OauthGetTokenResponse)
+		auth.AccessToken = resp.Access_token
+		c.accessToken = resp.Access_token
+		log.Trace().Msgf("Successfully authenticated with service account. Access token: %s", auth.AccessToken)
+		return nil
+	}
+
 	if auth.APIKey != "" {
 		c.apiKey = auth.APIKey
 		return nil
@@ -201,4 +224,80 @@ func (c *Connector) SignJWT(keyID string, header string, payload string) (jwt st
 
 func (c *Connector) GetJwksX5u(cert *x509.Certificate) (string, error) {
 	return "", fmt.Errorf("operation not supported by cloud")
+}
+
+func processAuthData(c *Connector, url urlResource, auth *endpoint.Authentication) (resp interface{}, err error) {
+	assertion, err := generateJWT(auth)
+	if err != nil {
+		return resp, fmt.Errorf("failed to generate JWT assertion: %v", err)
+	}
+	statusCode, status, body, err := c.requestURLEncoded("POST", url, assertion)
+	if err != nil {
+		return resp, err
+	}
+
+	var authorize OauthGetTokenResponse
+
+	if statusCode == http.StatusOK {
+		err = json.Unmarshal(body, &authorize)
+		if err != nil {
+			return resp, err
+		}
+		resp = authorize
+
+	} else {
+		return resp, fmt.Errorf("unexpected status code on TPP Authorize. Status: %s, Details: %s", status, NewAuthenticationError(body))
+	}
+
+	return resp, nil
+}
+
+func generateJWT(auth *endpoint.Authentication) (string, error) {
+	privateKeyBytes, err := os.ReadFile(auth.ServiceAccountKeyFile)
+	if err != nil {
+		return "", fmt.Errorf("Error reading private key: %v", err)
+	}
+
+	var key interface{}
+	// jwt.ParseKey detects the PEM block type and returns the correct key interface
+	key, err = jwt.ParseRSAPrivateKeyFromPEM(privateKeyBytes) // Standard helper
+	if err != nil {
+		// If ParseEd fails, try general PEM parsing
+		key, err = jwt.ParseECPrivateKeyFromPEM(privateKeyBytes)
+		if err != nil {
+			return "", fmt.Errorf("Error parsing private key: %v", err)
+		}
+	}
+
+	var method jwt.SigningMethod
+
+	// Detect key type to choose the algorithm
+	switch key.(type) {
+	case *rsa.PrivateKey:
+		method = jwt.SigningMethodRS256
+	case *ecdsa.PrivateKey:
+		method = jwt.SigningMethodES256
+	default:
+		return "", fmt.Errorf("unsupported key type: %T", key)
+	}
+
+	// 3. Define the Claims
+	claims := jwt.MapClaims{
+		"iss": auth.ServiceAccountClientId,
+		"sub": auth.ServiceAccountClientId,
+		"aud": codeSignServiceAccountJWTAudience,
+		"iat": time.Now().Unix(),
+		"exp": time.Now().Add(time.Hour * 1).Unix(), // 1 hour expiry
+		"jti": uuid.New().String(),
+	}
+
+	// 4. Create token with RS256/ES256 method
+	token := jwt.NewWithClaims(method, claims)
+
+	// 5. Sign with the RSA Private Key
+	tokenString, err := token.SignedString(key)
+	if err != nil {
+		return "", fmt.Errorf("Error signing token: %v", err)
+	}
+	return tokenString, nil
 }

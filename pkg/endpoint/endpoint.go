@@ -72,15 +72,17 @@ type Filter struct {
 
 // Authentication provides a struct for authentication data. Either specify User and Password for Trust Platform or specify an APIKey for Cloud.
 type Authentication struct {
-	User         string
-	Password     string
-	APIKey       string
-	JWT          string
-	RefreshToken string
-	Scope        string
-	ClientId     string
-	AccessToken  string
-	ClientPKCS12 bool
+	User                   string
+	Password               string
+	APIKey                 string
+	JWT                    string
+	RefreshToken           string
+	Scope                  string
+	ClientId               string
+	ServiceAccountClientId string
+	ServiceAccountKeyFile  string
+	AccessToken            string
+	ClientPKCS12           bool
 }
 
 type Environment struct {

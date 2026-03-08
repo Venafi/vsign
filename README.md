@@ -1,7 +1,6 @@
-[![Venafi](https://raw.githubusercontent.com/Venafi/.github/master/images/Venafi_logo.png)](https://www.venafi.com/)
 [![Apache 2.0 License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 ![Community Supported](https://img.shields.io/badge/Support%20Level-Community-brightgreen)
-![Compatible with TPP 21.x](https://img.shields.io/badge/Compatibility-TPP%2021.x-f9a90c)
+![Compatible with Trust Protection Foundation 21.x](https://img.shields.io/badge/Compatibility-TPP%2021.x-f9a90c)
 [![codecov](https://codecov.io/gh/zosocanuck/vsign/branch/main/graph/badge.svg?token=9CF4DJTZBC)](https://codecov.io/gh/venafi/vsign)  
 _**This open source project is community-supported.** To report a problem or share an idea, use
 **[Issues](../../issues)**; and if you have a suggestion for fixing the issue, please include those details, too.
@@ -12,12 +11,12 @@ We welcome and appreciate all contributions. Got questions or want to discuss so
 # vSign
 
 vSign is a Go library, SDK, and command line utility designed to secure the code signing process by using
-[Venafi CodeSign Protect](https://venafi.com/codesign-protect/)
+[CyberArk Code Sign Manager](https://www.cyberark.com/products/code-sign-manager/)
 
 **IMPORTANT** - vSign was not designed as a substitute for existing industry-standard signing tools such as signtool, jarsigner, etc.
 
 ## Use Cases
-1. Notation signing [plugin](https://github.com/venafi/notation-venafi-csp) that supports Venafi CodeSign Protect 
+1. Notation signing [plugin](https://github.com/venafi/notation-venafi-csp) that supports CyberArk Code Sign Manager 
 2. Generic artifact signing
 3. PDF signing
 4. SDK (see simple use case [here](examples/simple-cli))
@@ -34,11 +33,11 @@ vSign is a Go library, SDK, and command line utility designed to secure the code
 
    `make vsign`
 
-## Using vSign to integrate Venafi CodeSign Protect into your Code Signing workflow:
+## Using vSign to integrate CyberArk Code Sign Manager into your Code Signing workflow:
 
 You can either use environment variables or a configuration file to customize interaction with the underlying WebSDK.
 
-#### Pre-requisites for using with CodeSign Protect:
+#### Pre-requisites for using with Code Sign Manager Self-Hosted:
 1. `vsign-sdk` API Integration has been created with the following minimum scopes: 
    
 | TPP Version | Minimum Scopes | Permissions |
@@ -49,6 +48,8 @@ You can either use environment variables or a configuration file to customize in
 2. Code signing user is assigned to `vsign-sdk` API integration.
 
 #### Create Environment variables
+
+##### Self-Hosted
 
 ```
 VSIGN_URL = "https://tpp.example.com"
@@ -72,7 +73,7 @@ For authentication only use either `access_token/VSIGN_TOKEN` or `jwt/VSIGN_JWT`
 
 `tpp_url` / `VSIGN_URL` = base URL for TPP
 
-`access_token` / `VSIGN_TOKEN` = Access token for CodeSign Protect user with minimum scope:
+`access_token` / `VSIGN_TOKEN` = Access token for Code Sign Manager user with minimum scope:
 
 ```
 codesignclient;codesign;certificate:manage,discover
@@ -80,17 +81,41 @@ codesignclient;codesign;certificate:manage,discover
 
 certificate scope needed by some parts of vSign library for retrieving code signing certificates.
 
-`tpp_project` / `VSIGN_PROJECT` = Path to CodeSign Protect environment to use for signing
+`tpp_project` / `VSIGN_PROJECT` = Path to Code Sign Manager environment to use for signing
 
-`tpp_jwt` / `VSIGN_JWT` = JWT useful when TPP is configured for JWT authentication.  Helpful for automated pipelines where you would want to exchange and short-lived OIDC token for a (short-lived) TPP access token.  Only supported with JWT authentication introduced in 22.4.
+`tpp_jwt` / `VSIGN_JWT` = JWT useful when TPF is configured for JWT authentication.  Helpful for automated pipelines where you would want to exchange and short-lived OIDC token for a (short-lived) TPP access token.  Only supported with JWT authentication introduced in 22.4.
 
-`tpp_bundle` / `VSIGN_TRUST_BUNDLE` = Path to certificate chain in case of private chain of trust for Venafi TPP VOC
+`tpp_bundle` / `VSIGN_TRUST_BUNDLE` = Path to certificate chain in case of private chain of trust for CyberArk Certificate Manager Self-Hosted VOC
+
+##### SaaS Environment Variables
+
+*URL will depend on region*
+
+```
+VSIGN_URL = "https://api.venafi.cloud"
+VSIGN_APIKEY = "xxx"
+VSIGN_CLIENT_ID = "xxxxxxx"
+VSIGN_KEYLABEL="{project}-{signing-key}"
+VSIGN_PRIVATE_KEY_FILE = "/path/to/service-account-private-key-file.key"
+```
+
+#### Create Configuration file (config.ini)
+
+```
+url = "https://api.venafi.cloud" 
+cloud_keylabel = "{project}-{signing-key}"
+cloud_apikey = "xxxx"
+cloud_keyfile = "/path/to/service-account-private-key-file.key"
+cloud_clientid = "xxxxxx"
+```
+
+*Use either a SaaS API Key for the authorized signer or a private key and service account client id*
 
 ### Signing
    ```
    vsign sign --config test/config.ini --output-signature test/output.sig --payload test/data.txt --mechanism 64
    ```
-* Refer to [vSign Mechanism compatibility guide](COMPATIBILITY.md) for list of supported Venafi CodeSign Protect PKCS#11 mechanisms
+* Refer to [vSign Mechanism compatibility guide](COMPATIBILITY.md) for list of supported CyberArk Code Sign Manager PKCS#11 mechanisms
 * **IMPORTANT**: Client-side hashing mechanisms are the preferred approach for signing payloads.  vSign will automatically detect if you are attempting to sign a large payload with a server-side hashing mechanism and terminate.
   
 ### Verification

@@ -85,9 +85,11 @@ func BuildConfig(c context.Context, config string) (cfg Config, err error) {
 		var baseURL string
 		var auth = &endpoint.Authentication{}
 
-		token := getPropertyFromEnvironment(vSignToken)   // TPP environment variable
-		jwt := getPropertyFromEnvironment(vSignJWT)       // TPP environment variable
-		apiKey := getPropertyFromEnvironment(vSignAPIKey) // Cloud environment variable
+		token := getPropertyFromEnvironment(vSignToken)       // TPP environment variable
+		jwt := getPropertyFromEnvironment(vSignJWT)           // TPP environment variable
+		apiKey := getPropertyFromEnvironment(vSignAPIKey)     // Cloud environment variable
+		clientId := getPropertyFromEnvironment(vSignClientId) // Cloud environment variable
+		privateKeyFile := getPropertyFromEnvironment(vSignPrivateKeyFile)
 
 		// Set log level
 		util.SetLogLevel(getPropertyFromEnvironment(vSignLogLevel))
@@ -111,6 +113,15 @@ func BuildConfig(c context.Context, config string) (cfg Config, err error) {
 
 		if apiKey != "" {
 			auth.APIKey = apiKey
+			connectorType = endpoint.ConnectorTypeCloud
+		}
+
+		if clientId != "" {
+			auth.ServiceAccountClientId = clientId
+		}
+
+		if privateKeyFile != "" {
+			auth.ServiceAccountKeyFile = privateKeyFile
 			connectorType = endpoint.ConnectorTypeCloud
 		}
 
@@ -214,9 +225,11 @@ func loadConfigFromFile(path, section string) (cfg Config, err error) {
 		if m.has("tpp_project") {
 			cfg.Project = m["tpp_project"]
 		}
-	} else if m.has("cloud_apikey") {
+	} else if m.has("cloud_apikey") || m.has("cloud_clientid") || m.has("cloud_keyfile") {
 		connectorType = endpoint.ConnectorTypeCloud
 		auth.APIKey = m["cloud_apikey"]
+		auth.ServiceAccountClientId = m["cloud_clientid"]
+		auth.ServiceAccountKeyFile = m["cloud_keyfile"]
 		if m["cloud_url"] != "" {
 			baseUrl = m["cloud_url"]
 		}
@@ -303,6 +316,8 @@ func validateSection(s *ini.Section) error {
 	var CloudValidKeys set = map[string]bool{
 		"url":            true,
 		"cloud_apikey":   true,
+		"cloud_clientid": true,
+		"cloud_keyfile":  true,
 		"cloud_keylabel": true,
 		"log_level":      true,
 	}
@@ -324,7 +339,7 @@ func validateSection(s *ini.Section) error {
 		if m.has("jwt") && m.has("access_token") {
 			return fmt.Errorf("configuration issue in section %s: could not have both TPP JWT and access token", s.Name())
 		}
-	} else if m.has("cloud_apikey") {
+	} else if m.has("cloud_apikey") || m.has("cloud_clientid") || m.has("cloud_keyfile") {
 		// looks like Cloud config section
 		for k := range m {
 			if !CloudValidKeys.has(k) {

@@ -38,3 +38,5 @@ test/dummy-signed-ecdsasha256.pdf
 # config files
 test/config.ini
 test/config-ecdsa.ini
+
+test/*.key

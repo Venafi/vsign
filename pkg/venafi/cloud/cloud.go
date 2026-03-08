@@ -15,6 +15,7 @@ import (
 	"math/big"
 	"net"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -57,9 +58,10 @@ type apiSignResponse struct {
 }
 
 type getObjectsRequest struct {
-	KeyID        string `json:"KeyId,omitempty"`
-	IncludeChain bool   `json:"IncludeChains,omitempty"`
-	Experimental bool   `json:"Experimental,omitempty"`
+	KeyID        string   `json:"KeyId,omitempty"`
+	LabelFilter  []string `json:"LabelFilter,omitempty"`
+	IncludeChain bool     `json:"IncludeChains,omitempty"`
+	Experimental bool     `json:"Experimental,omitempty"`
 }
 
 type Certificate struct {
@@ -86,10 +88,19 @@ type getObjectsResponse struct {
 	PublicKeys   []PublicKey   `json:",omitempty"`
 }
 
+type OauthGetTokenResponse struct {
+	Access_token      string `json:"access_token,omitempty"`
+	Expires           int    `json:"expires_in,omitempty"`
+	CredentialExpires int    `json:"credential_expires_in,omitempty"`
+	Token_type        string `json:"token_type,omitempty"`
+}
+
 const (
-	apiURL                                    = "api.venafi.cloud"
-	urlResourceCodeSignAPISign    urlResource = "vedhsm/api/sign"
-	urlResourceCodeSignGetObjects urlResource = "vedhsm/api/getobjects"
+	apiURL                                         = "api.venafi.cloud"
+	urlResourceCodeSignAPISign         urlResource = "vedhsm/api/sign"
+	urlResourceCodeSignGetObjects      urlResource = "vedhsm/api/getobjects"
+	urlResourceAuthorizeServiceAccount urlResource = "v1/oauth/token/serviceaccount"
+	codeSignServiceAccountJWTAudience              = "api.venafi.cloud/v1/oauth/token/serviceaccount"
 )
 
 func (c *Connector) request(method string, resource urlResource, data interface{}) (statusCode int, statusText string, body []byte, err error) {
@@ -109,6 +120,7 @@ func (c *Connector) request(method string, resource urlResource, data interface{
 	r, _ := http.NewRequest(method, url, payload)
 	r.Close = true
 	if c.accessToken != "" {
+		log.Trace().Msgf("Adding access token to request header for %s %s\n", method, url)
 		r.Header.Add("Authorization", fmt.Sprintf("Bearer %s", c.accessToken))
 	} else if c.apiKey != "" {
 		r.Header.Add(util.HeaderTpplApikey, c.apiKey)
@@ -141,6 +153,44 @@ func (c *Connector) request(method string, resource urlResource, data interface{
 	log.Trace().Msgf("Response:\n%s\n", string(body))
 
 	log.Trace().Msgf("Got %s status for %s %s\n", statusText, method, url)
+
+	return
+}
+
+func (c *Connector) requestURLEncoded(method string, resource urlResource, jwt string) (statusCode int, statusText string, body []byte, err error) {
+	apiUrl := c.baseURL + string(resource)
+
+	formData := url.Values{}
+	formData.Set("grant_type", "urn:ietf:params:oauth:grant-type:jwt-bearer")
+	formData.Set("assertion", jwt)
+	log.Trace().Msgf("Form data for %s:\n%s\n", apiUrl, formData.Encode())
+
+	res, err := c.getHTTPClient().PostForm(apiUrl, formData)
+	if err != nil {
+		fmt.Printf("Error creating request: %v\n", err)
+		return
+	}
+
+	if res != nil {
+		statusCode = res.StatusCode
+		statusText = res.Status
+	}
+
+	defer res.Body.Close()
+	body, err = io.ReadAll(res.Body)
+
+	//
+	// Limit trace level logging in production as sensitive information may be disclosed
+	//
+
+	if method == "POST" || method == "PUT" {
+		log.Trace().Msgf("JSON sent for %s\n%s\n", apiUrl, jwt)
+	} else {
+		log.Trace().Msgf("%s request sent to %s\n", method, apiUrl)
+	}
+	log.Trace().Msgf("Response:\n%s\n", string(body))
+
+	log.Trace().Msgf("Got %s status for %s %s\n", statusText, method, apiUrl)
 
 	return
 }

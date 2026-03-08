@@ -48,7 +48,7 @@ func (cfg *Config) NewClient() (connector endpoint.Connector, err error) {
 		return
 	}
 
-	if cfg.Credentials.AccessToken != "" || cfg.Credentials.JWT != "" || cfg.Credentials.APIKey != "" {
+	if cfg.Credentials.AccessToken != "" || cfg.Credentials.JWT != "" || cfg.Credentials.APIKey != "" || (cfg.Credentials.ServiceAccountClientId != "" || cfg.Credentials.ServiceAccountKeyFile != "") {
 		err = connector.Authenticate(cfg.Credentials)
 	} else {
 		var errstr string
@@ -60,6 +60,12 @@ func (cfg *Config) NewClient() (connector endpoint.Connector, err error) {
 		}
 		if cfg.Credentials.APIKey == "" {
 			errstr += ", no API Key specificed"
+		}
+		if cfg.Credentials.ServiceAccountClientId == "" {
+			errstr += ", no Service Account Client ID specified"
+		}
+		if cfg.Credentials.ServiceAccountKeyFile == "" {
+			errstr += ", no Service Account Private Key File specified"
 		}
 		return nil, fmt.Errorf("failed to authenticate: %s", errstr)
 

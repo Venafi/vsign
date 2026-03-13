@@ -2,6 +2,7 @@ package cloud
 
 import (
 	"crypto/ecdsa"
+	"crypto/ed25519"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/json"
@@ -260,12 +261,15 @@ func generateJWT(auth *endpoint.Authentication) (string, error) {
 
 	var key interface{}
 	// jwt.ParseKey detects the PEM block type and returns the correct key interface
-	key, err = jwt.ParseRSAPrivateKeyFromPEM(privateKeyBytes) // Standard helper
+	key, err = jwt.ParseEdPrivateKeyFromPEM(privateKeyBytes) // Standard helper
 	if err != nil {
 		// If ParseEd fails, try general PEM parsing
-		key, err = jwt.ParseECPrivateKeyFromPEM(privateKeyBytes)
+		key, err = jwt.ParseRSAPrivateKeyFromPEM(privateKeyBytes)
 		if err != nil {
-			return "", fmt.Errorf("Error parsing private key: %v", err)
+			key, err = jwt.ParseECPrivateKeyFromPEM(privateKeyBytes)
+			if err != nil {
+				return "", fmt.Errorf("Error parsing private key: %v", err)
+			}
 		}
 	}
 
@@ -277,6 +281,8 @@ func generateJWT(auth *endpoint.Authentication) (string, error) {
 		method = jwt.SigningMethodRS256
 	case *ecdsa.PrivateKey:
 		method = jwt.SigningMethodES256
+	case ed25519.PrivateKey:
+		method = jwt.SigningMethodEdDSA
 	default:
 		return "", fmt.Errorf("unsupported key type: %T", key)
 	}

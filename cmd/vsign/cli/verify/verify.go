@@ -102,7 +102,10 @@ func VerifyCmd(ctx context.Context, verifyOpts options.VerifyOptions, args []str
 		if opts.Compression != magic.CompressedNone {
 			return fmt.Errorf("cannot verify compressed file")
 		}
-		err = mod.Verify(f, verifyOpts, signers.VerifyOpts{Platform: connector, NoDigests: true})
+		// NoDigests is intentionally left false (the zero value) so that
+		// every file digest listed in MANIFEST.MF is validated against the
+		// actual JAR entry contents (CWE-347 fix).
+		err = mod.Verify(f, verifyOpts, signers.VerifyOpts{Platform: connector})
 		if err != nil {
 			return fmt.Errorf("verification error: %v", err.Error())
 		}

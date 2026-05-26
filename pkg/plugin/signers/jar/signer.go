@@ -20,6 +20,7 @@ package jar
 
 import (
 	"archive/zip"
+	"bytes"
 	"crypto/x509"
 	"fmt"
 	"io"
@@ -77,6 +78,14 @@ func sign(r io.Reader, certs []*x509.Certificate, opts signers.SignOpts) ([]byte
 	return opts.SetBinPatch(patch)
 }
 
+// verify checks the cryptographic integrity of a signed JAR file.
+//
+// Two security properties are enforced (CWE-347):
+//  1. Digest validation – every file entry listed in MANIFEST.MF is hashed
+//     and compared against its recorded digest (controlled by NoDigests in
+//     platformOpts; the caller must NOT set NoDigests: true for production use).
+//  2. Trust anchor validation – each PKCS#7 signature block is verified to
+//     chain up to a root CA that the Venafi platform considers authoritative.
 func verify(f *os.File, opts options.VerifyOptions, platformOpts signers.VerifyOpts) error {
 	experimental := figure.NewFigure("experimental: Jar signing", "", true)
 	experimental.Print()
@@ -89,9 +98,66 @@ func verify(f *os.File, opts options.VerifyOptions, platformOpts signers.VerifyO
 	if err != nil {
 		return err
 	}
-	_, err = jar.Verify(inz, platformOpts.NoDigests)
+
+	// Verify manifest digests and parse the embedded PKCS#7 signature blocks.
+	// platformOpts.NoDigests must be false (the default) for full integrity
+	// checking; a true value skips per-entry hash validation (CWE-347).
+	sigs, err := jar.Verify(inz, platformOpts.NoDigests)
 	if err != nil {
 		return err
+	}
+
+	if len(sigs) == 0 {
+		return fmt.Errorf("JAR contains no valid signatures")
+	}
+
+	// --- Trust anchor validation (CWE-347) ---
+	//
+	// Retrieve the certificate chain associated with the signing environment
+	// from the Venafi platform.  The chain is used to build an authoritative
+	// trust pool so that we can confirm each JAR signature was made by a key
+	// whose certificate chains to a known, trusted root CA.
+	env, err := platformOpts.Platform.GetEnvironment()
+	if err != nil {
+		return fmt.Errorf("failed to retrieve platform environment for trust anchor validation: %w", err)
+	}
+
+	if len(env.CertificateChainData) == 0 {
+		return fmt.Errorf("platform returned an empty certificate chain; cannot perform trust anchor validation")
+	}
+
+	// Partition the chain into root CAs (trust anchors) and intermediates.
+	// A certificate is a root CA when its Subject and Issuer raw bytes are
+	// identical (self-signed).
+	trustedPool := x509.NewCertPool()
+	var intermediates []*x509.Certificate
+	rootFound := false
+
+	for _, derBytes := range env.CertificateChainData {
+		cert, parseErr := x509.ParseCertificate(derBytes)
+		if parseErr != nil {
+			return fmt.Errorf("failed to parse certificate from platform chain: %w", parseErr)
+		}
+		if bytes.Equal(cert.RawIssuer, cert.RawSubject) {
+			// Self-signed → root CA → trust anchor
+			trustedPool.AddCert(cert)
+			rootFound = true
+		} else {
+			intermediates = append(intermediates, cert)
+		}
+	}
+
+	if !rootFound {
+		return fmt.Errorf("no self-signed root CA found in platform certificate chain; cannot establish trust anchor")
+	}
+
+	// Validate the full X.509 chain for every signature found in the JAR.
+	// This rejects JARs signed by keys that do not chain to a trusted root,
+	// closing the CWE-347 trust-anchor gap.
+	for i, sig := range sigs {
+		if err := sig.TimestampedSignature.VerifyChain(trustedPool, intermediates, x509.ExtKeyUsageCodeSigning); err != nil {
+			return fmt.Errorf("JAR signature %d failed trust chain validation: %w", i+1, err)
+		}
 	}
 
 	return nil

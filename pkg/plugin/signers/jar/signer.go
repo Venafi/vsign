@@ -89,9 +89,20 @@ func verify(f *os.File, opts options.VerifyOptions, platformOpts signers.VerifyO
 	if err != nil {
 		return err
 	}
-	_, err = jar.Verify(inz, platformOpts.NoDigests)
+
+	// Verify cryptographic signatures and digests
+	sigs, err := jar.Verify(inz, platformOpts.NoDigests)
 	if err != nil {
 		return err
+	}
+
+	// Validate certificate chains against trusted roots
+	if !platformOpts.NoChain && platformOpts.TrustedPool != nil {
+		for i, sig := range sigs {
+			if err := sig.VerifyChain(platformOpts.TrustedPool, nil, x509.ExtKeyUsageCodeSigning); err != nil {
+				return fmt.Errorf("signature %d: certificate chain validation failed: %w", i, err)
+			}
+		}
 	}
 
 	return nil

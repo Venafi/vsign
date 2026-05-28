@@ -260,16 +260,8 @@ func (c *Connector) request(method string, resource urlResource, data interface{
 	body, err = io.ReadAll(res.Body)
 
 	//
-	// Limit trace level logging in production as sensitive information may be disclosed
+	// Trace logging disabled to prevent disclosure of sensitive authentication data (CWE-532)
 	//
-
-	log.Trace().Msgf("Headers are:\n%s", r.Header)
-	if method == "POST" || method == "PUT" {
-		log.Trace().Msgf("JSON sent for %s\n%s\n", url, string(b))
-	} else {
-		log.Trace().Msgf("%s request sent to %s\n", method, url)
-	}
-	log.Trace().Msgf("Response:\n%s\n", string(body))
 
 	log.Trace().Msgf("Got %s status for %s %s\n", statusText, method, url)
 

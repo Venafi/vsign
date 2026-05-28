@@ -187,7 +187,7 @@ func (c *Connector) Authenticate(auth *endpoint.Authentication) (err error) {
 		resp := result.(OauthGetTokenResponse)
 		auth.AccessToken = resp.Access_token
 		c.accessToken = resp.Access_token
-		log.Trace().Msgf("Successfully authenticated with service account. Access token: %s", auth.AccessToken)
+		// Trace logging disabled to prevent disclosure of access token (CWE-532)
 		return nil
 	}
 

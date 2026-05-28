@@ -120,7 +120,6 @@ func (c *Connector) request(method string, resource urlResource, data interface{
 	r, _ := http.NewRequest(method, url, payload)
 	r.Close = true
 	if c.accessToken != "" {
-		log.Trace().Msgf("Adding access token to request header for %s %s\n", method, url)
 		r.Header.Add("Authorization", fmt.Sprintf("Bearer %s", c.accessToken))
 	} else if c.apiKey != "" {
 		r.Header.Add(util.HeaderTpplApikey, c.apiKey)
@@ -141,16 +140,8 @@ func (c *Connector) request(method string, resource urlResource, data interface{
 	body, err = io.ReadAll(res.Body)
 
 	//
-	// Limit trace level logging in production as sensitive information may be disclosed
+	// Trace logging disabled to prevent disclosure of sensitive authentication data (CWE-532)
 	//
-
-	log.Trace().Msgf("Headers are:\n%s", r.Header)
-	if method == "POST" || method == "PUT" {
-		log.Trace().Msgf("JSON sent for %s\n%s\n", url, string(b))
-	} else {
-		log.Trace().Msgf("%s request sent to %s\n", method, url)
-	}
-	log.Trace().Msgf("Response:\n%s\n", string(body))
 
 	log.Trace().Msgf("Got %s status for %s %s\n", statusText, method, url)
 
@@ -163,7 +154,7 @@ func (c *Connector) requestURLEncoded(method string, resource urlResource, jwt s
 	formData := url.Values{}
 	formData.Set("grant_type", "urn:ietf:params:oauth:grant-type:jwt-bearer")
 	formData.Set("assertion", jwt)
-	log.Trace().Msgf("Form data for %s:\n%s\n", apiUrl, formData.Encode())
+	// Trace logging disabled to prevent disclosure of JWT assertion (CWE-532)
 
 	res, err := c.getHTTPClient().PostForm(apiUrl, formData)
 	if err != nil {
@@ -180,15 +171,8 @@ func (c *Connector) requestURLEncoded(method string, resource urlResource, jwt s
 	body, err = io.ReadAll(res.Body)
 
 	//
-	// Limit trace level logging in production as sensitive information may be disclosed
+	// Trace logging disabled to prevent disclosure of sensitive authentication data (CWE-532)
 	//
-
-	if method == "POST" || method == "PUT" {
-		log.Trace().Msgf("JSON sent for %s\n%s\n", apiUrl, jwt)
-	} else {
-		log.Trace().Msgf("%s request sent to %s\n", method, apiUrl)
-	}
-	log.Trace().Msgf("Response:\n%s\n", string(body))
 
 	log.Trace().Msgf("Got %s status for %s %s\n", statusText, method, apiUrl)
 

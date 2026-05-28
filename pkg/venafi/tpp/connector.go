@@ -555,14 +555,14 @@ func processAuthData(c *Connector, url urlResource, data interface{}) (resp inte
 			if err != nil {
 				return resp, err
 			}
-			log.Trace().Msgf("processAuthData oauthGetRefreshTokenRequest/oauthGetAccessTokenFromJWTRequest response:\n%s\n", string(body))
+			log.Trace().Msgf("processAuthData oauthGetRefreshTokenRequest/oauthGetAccessTokenFromJWTRequest response received (%d bytes)", len(body))
 			resp = getRefresh
 		case oauthRefreshAccessTokenRequest:
 			err = json.Unmarshal(body, &refreshAccess)
 			if err != nil {
 				return resp, err
 			}
-			log.Trace().Msgf("processAuthData oauthRefreshAccessTokenRequest response:\n%s\n", string(body))
+			log.Trace().Msgf("processAuthData oauthRefreshAccessTokenRequest response received (%d bytes)", len(body))
 			resp = refreshAccess
 		case authorizeRequest:
 			err = json.Unmarshal(body, &authorize)
@@ -575,7 +575,7 @@ func processAuthData(c *Connector, url urlResource, data interface{}) (resp inte
 			if err != nil {
 				return resp, err
 			}
-			log.Trace().Msgf("processAuthData oauthCertificateTokenRequest response:\n%s\n", string(body))
+			log.Trace().Msgf("processAuthData oauthCertificateTokenRequest response received (%d bytes)", len(body))
 			resp = getRefresh
 		default:
 			return resp, fmt.Errorf("can not determine data type")
@@ -630,7 +630,7 @@ func GetPKSCertificate(url string) (*x509.Certificate, error) {
 		if err != nil {
 			return nil, err
 		}
-		log.Trace().Msgf("GetPKSCertificate response:\n%s\n", string(body))
+		log.Trace().Msgf("GetPKSCertificate response received (%d bytes)", len(body))
 		block, _ := pem.Decode(body)
 		cert, err := x509.ParseCertificate(block.Bytes)
 		if err != nil {

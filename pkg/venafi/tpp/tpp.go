@@ -263,13 +263,13 @@ func (c *Connector) request(method string, resource urlResource, data interface{
 	// Limit trace level logging in production as sensitive information may be disclosed
 	//
 
-	log.Trace().Msgf("Headers are:\n%s", r.Header)
+	log.Trace().Msgf("Headers sent for %s (count: %d, auth present: %t)", url, len(r.Header), r.Header.Get("Authorization") != "")
 	if method == "POST" || method == "PUT" {
-		log.Trace().Msgf("JSON sent for %s\n%s\n", url, string(b))
+		log.Trace().Msgf("JSON sent for %s (%d bytes)\n", url, len(b))
 	} else {
 		log.Trace().Msgf("%s request sent to %s\n", method, url)
 	}
-	log.Trace().Msgf("Response:\n%s\n", string(body))
+	log.Trace().Msgf("Response for %s (%d bytes)\n", url, len(body))
 
 	log.Trace().Msgf("Got %s status for %s %s\n", statusText, method, url)
 

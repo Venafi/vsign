@@ -129,9 +129,19 @@ func sign(r io.Reader, certs []*x509.Certificate, opts signers.SignOpts) ([]byte
 }
 
 func verify(f *os.File, opts options.VerifyOptions, tppOpts signers.VerifyOpts) error {
-	_, err := verifier.File(f)
+	resp, err := verifier.File(f)
 	if err != nil {
 		return err
+	}
+
+	if len(resp.Signers) == 0 {
+		return fmt.Errorf("no signers found in PDF")
+	}
+
+	for _, signer := range resp.Signers {
+		if !signer.ValidSignature {
+			return fmt.Errorf("invalid signature for signer %q", signer.Name)
+		}
 	}
 
 	return nil

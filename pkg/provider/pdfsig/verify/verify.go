@@ -207,18 +207,13 @@ func Reader(file io.ReaderAt, size int64) (apiResp *Response, err error) {
 		}
 
 		// Verify the digital signature of the pdf file.
-		err = p7.VerifyWithChain(certPool)
-		if err != nil {
-			err = p7.Verify()
-			if err == nil {
-				signer.ValidSignature = true
-				signer.TrustedIssuer = false
-			} else {
-				apiResp.Error = fmt.Sprintln("Failed to verify signature:", err)
-			}
-		} else {
+		// Do not use signer-supplied certificates as trust root (CWE-345)
+		err = p7.Verify()
+		if err == nil {
 			signer.ValidSignature = true
-			signer.TrustedIssuer = true
+			signer.TrustedIssuer = false
+		} else {
+			apiResp.Error = fmt.Sprintln("Failed to verify signature:", err)
 		}
 
 		// PDF signature certificate revocation information attribute (1.2.840.113583.1.1.8)

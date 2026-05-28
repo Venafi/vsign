@@ -13,7 +13,6 @@ import (
 
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
-	"github.com/rs/zerolog/log"
 	"github.com/venafi/vsign/pkg/crypto"
 	"github.com/venafi/vsign/pkg/endpoint"
 	"github.com/venafi/vsign/pkg/util"

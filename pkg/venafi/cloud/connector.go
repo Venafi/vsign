@@ -187,7 +187,7 @@ func (c *Connector) Authenticate(auth *endpoint.Authentication) (err error) {
 		resp := result.(OauthGetTokenResponse)
 		auth.AccessToken = resp.Access_token
 		c.accessToken = resp.Access_token
-		log.Trace().Msgf("Successfully authenticated with service account. Access token: %s", auth.AccessToken)
+		log.Trace().Msg("Successfully authenticated with service account (access token redacted)")
 		return nil
 	}
 

@@ -72,7 +72,7 @@ func GetCredCmd(ctx context.Context, credOpts options.GetCredOptions, args []str
 			Scope:    endpoint.DefaultScope,
 			ClientId: endpoint.DefaultClientID}
 
-		resp, err := connector.GetCredential(auth)
+		_, err = connector.GetCredential(auth)
 		if err != nil {
 			return fmt.Errorf("error fetching token: %s", err)
 		}

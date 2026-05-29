@@ -200,14 +200,23 @@ func Reader(file io.ReaderAt, size int64) (apiResp *Response, err error) {
 			}
 		}
 
-		// Directory of certificates, including OCSP
+		// Use system certificate pool as the trust root so that
+		// verification is anchored to independently trusted CAs,
+		// not the signer-supplied certificates embedded in the PDF.
+		systemPool, sysErr := x509.SystemCertPool()
+		if sysErr != nil {
+			systemPool = x509.NewCertPool()
+		}
+
+		// Signer-supplied certificates used only as intermediates
+		// for later certificate-chain inspection.
 		certPool := x509.NewCertPool()
 		for _, cert := range p7.Certificates {
 			certPool.AddCert(cert)
 		}
 
-		// Verify the digital signature of the pdf file.
-		err = p7.VerifyWithChain(certPool)
+		// Verify the digital signature of the pdf file against system trust roots.
+		err = p7.VerifyWithChain(systemPool)
 		if err != nil {
 			err = p7.Verify()
 			if err == nil {

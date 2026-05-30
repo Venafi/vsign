@@ -149,6 +149,15 @@ func verifyManifest(inz *zip.Reader, manifest []byte) error {
 			return err
 		}
 	}
+	// Reject JAR files that contain unsigned content outside META-INF/
+	for name := range zipfiles {
+		if strings.HasPrefix(name, "META-INF/") || strings.HasSuffix(name, "/") {
+			continue
+		}
+		if parsed.Files[name] == nil {
+			return fmt.Errorf("file \"%s\" is in the JAR but not covered by MANIFEST.MF", name)
+		}
+	}
 	return nil
 }
 

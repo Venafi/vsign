@@ -89,9 +89,25 @@ func verify(f *os.File, opts options.VerifyOptions, platformOpts signers.VerifyO
 	if err != nil {
 		return err
 	}
-	_, err = jar.Verify(inz, platformOpts.NoDigests)
+	sigs, err := jar.Verify(inz, platformOpts.NoDigests)
 	if err != nil {
 		return err
+	}
+
+	// Validate certificate chain against trusted roots
+	if !platformOpts.NoChain {
+		roots := platformOpts.TrustedPool
+		if roots == nil {
+			roots, err = x509.SystemCertPool()
+			if err != nil {
+				return fmt.Errorf("failed to load system certificate pool: %w", err)
+			}
+		}
+		for _, sig := range sigs {
+			if err := sig.TimestampedSignature.VerifyChain(roots, platformOpts.TrustedX509, x509.ExtKeyUsageCodeSigning); err != nil {
+				return fmt.Errorf("certificate chain verification failed: %w", err)
+			}
+		}
 	}
 
 	return nil

@@ -65,9 +65,11 @@ type getObjectsRequest struct {
 }
 
 type Certificate struct {
-	Value string `json:",omitempty"`
-	Label string `json:"Label,omitempty"`
-	KeyId string `json:"KeyId,omitempty"`
+	Value         string        `json:",omitempty"`
+	Label         string        `json:"Label,omitempty"`
+	KeyId         string        `json:"KeyId,omitempty"`
+	Intermediates []Certificate `json:"Intermediates,omitempty"`
+	Root          *Certificate  `json:"Root,omitempty"`
 }
 
 type PublicKey struct {
@@ -238,22 +240,42 @@ func parseGetObjectsResult(httpStatusCode int, httpStatus string, body []byte, l
 			return "", nil, nil, err
 		}
 		if len(reqData.Certificates) > 0 {
-			certChain := make([][]byte, 0, 1)
-			for _, cert := range reqData.Certificates {
-				if cert.Label == label {
-					decData, err := base64.StdEncoding.DecodeString(cert.Value)
-					if err != nil {
-						return "", nil, nil, fmt.Errorf("failed to decode base64 certificate")
-					}
-					c, err := x509.ParseCertificate(decData)
-					if err != nil {
-						return "", nil, nil, fmt.Errorf("error parsing certificate")
-					}
-					certChain = append(certChain, c.Raw)
-					return cert.KeyId, certChain, nil, nil
+			// The cloud getobjects response nests each cert's issuer chain under
+			// the matched leaf ('Intermediate' and 'Root'). Build the chain for the
+			// requested leaf, ordered leaf first then issuers (root last), for the x5c.
+			// Selecting by label keeps the right chain even
+			// when the response also carries other keys' certs.
+			decode := func(value string) ([]byte, error) {
+				der, err := base64.StdEncoding.DecodeString(value)
+				if err != nil {
+					return nil, fmt.Errorf("decoding as base64 certificate: %s", value)
 				}
+				c, err := x509.ParseCertificate(der)
+				if err != nil {
+					return nil, fmt.Errorf("parsing x509 certificate from der")
+				}
+				return c.Raw, nil
 			}
-			return "", nil, nil, fmt.Errorf("failed to retrieve certificate")
+
+			for _, cert := range reqData.Certificates {
+				if cert.Label != label {
+					continue
+				}
+				certs := append([]Certificate{cert}, cert.Intermediates...)
+				if cert.Root != nil && cert.Root.Value != "" {
+					certs = append(certs, *cert.Root)
+				}
+				certChain := make([][]byte, 0, len(certs))
+				for _, c := range certs {
+					raw, err := decode(c.Value)
+					if err != nil {
+						return "", nil, nil, err
+					}
+					certChain = append(certChain, raw)
+				}
+				return cert.KeyId, certChain, nil, nil
+			}
+			return "", nil, nil, fmt.Errorf("failed to retrieve certificate for label %s", label)
 		} else {
 			for _, pKey := range reqData.PublicKeys {
 				if pKey.Label == label {

@@ -30,7 +30,7 @@ import (
 	"path"
 	"strings"
 
-	"github.com/xi2/xz"
+	"github.com/ulikunitz/xz"
 )
 
 type FileType int
@@ -154,7 +154,7 @@ func DetectCompressed(f *os.File) (FileType, CompressionType) {
 		}
 		return ftype, CompressedGzip
 	case hasPrefix(br, []byte("\xfd7zXZ\x00")):
-		zr, err := xz.NewReader(br, 0)
+		zr, err := xz.NewReader(br)
 		if err == nil {
 			zbr := bufio.NewReader(zr)
 			if isTar(zbr) {
@@ -175,7 +175,7 @@ func Decompress(r io.Reader, ctype CompressionType) (io.Reader, error) {
 	case CompressedGzip:
 		return gzip.NewReader(r)
 	case CompressedXz:
-		return xz.NewReader(r, 0)
+		return xz.NewReader(r)
 	default:
 		return nil, errors.New("invalid compression type")
 	}

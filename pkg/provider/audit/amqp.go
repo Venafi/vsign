@@ -21,7 +21,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/streadway/amqp"
+	amqp "github.com/rabbitmq/amqp091-go"
 
 	"github.com/sassoftware/relic/v7/config"
 	"github.com/sassoftware/relic/v7/lib/certloader"

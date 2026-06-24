@@ -4,6 +4,7 @@
 
 * MacOS Apple Silicon support
 * Improved logging
+* Code Sign Manager, SaaS support
   
 ## Bug Fixes
 

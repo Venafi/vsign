@@ -72,13 +72,13 @@ func GetCredCmd(ctx context.Context, credOpts options.GetCredOptions, args []str
 			Scope:    endpoint.DefaultScope,
 			ClientId: endpoint.DefaultClientID}
 
-		_, err = connector.GetCredential(auth)
+		token, err := connector.GetCredential(auth)
 		if err != nil {
 			return fmt.Errorf("error fetching token: %s", err)
 		}
 		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, NoColor: true})
 		log.Trace().Msg("access_token: [REDACTED]")
-		//println("access_token: " + resp)
+		fmt.Println("access_token: " + token)
 	} else {
 		return fmt.Errorf("missing tpp credentials")
 	}

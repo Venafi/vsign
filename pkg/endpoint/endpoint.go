@@ -17,7 +17,7 @@ const (
 	ConnectorTypeCloud
 
 	DefaultClientID = "vsign-sdk"
-	DefaultScope    = "codesignclient;codesign;certificate:manage,discover"
+	DefaultScope    = "codesignclient;codesign"
 )
 
 func init() {

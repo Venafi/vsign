@@ -1,6 +1,6 @@
 [![Apache 2.0 License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 ![Community Supported](https://img.shields.io/badge/Support%20Level-Community-brightgreen)
-![Compatible with Trust Protection Foundation 21.x](https://img.shields.io/badge/Compatibility-TPP%2021.x-f9a90c)
+![Compatible with Trust Protection Foundation 23.x](https://img.shields.io/badge/Compatibility-TPP%2023.x-f9a90c)
 [![codecov](https://codecov.io/gh/zosocanuck/vsign/branch/main/graph/badge.svg?token=9CF4DJTZBC)](https://codecov.io/gh/venafi/vsign)  
 _**This open source project is community-supported.** To report a problem or share an idea, use
 **[Issues](../../issues)**; and if you have a suggestion for fixing the issue, please include those details, too.
@@ -42,7 +42,6 @@ You can either use environment variables or a configuration file to customize in
    
 | TPP Version | Minimum Scopes | Permissions |
 | ----------- | -------------- | ----------- |
-| <= 22.4 | `codesignclient;codesign;certificate:manage,discover` | Code signing certificate must be granted `View,Read` since `POST Certificates/Retrieve` is used to fetch the code signing certificates and optional chain |
 | >= 23.x | `codesignclient;codesign` | None |
 
 2. Code signing user is assigned to `vsign-sdk` API integration.

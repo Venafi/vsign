@@ -4,8 +4,8 @@ go 1.26.0
 
 require (
 	github.com/common-nighthawk/go-figure v0.0.0-20210622060536-734e95fb86be
-	github.com/digitorus/pdf v0.1.2
-	github.com/digitorus/pdfsign v0.0.0-20260407063256-85ede6424a74
+	github.com/digitorus/pdf v0.2.0
+	github.com/digitorus/pdfsign v1.0.0-rc1
 	github.com/digitorus/pkcs7 v0.0.0-20250730155240-ffadbf3f398c
 	github.com/digitorus/timestamp v0.0.0-20250524132541-c45532741eea
 	github.com/golang-jwt/jwt/v4 v4.5.2

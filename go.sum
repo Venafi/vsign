@@ -186,10 +186,10 @@ github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSs
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc h1:U9qPSI2PIWSS1VwoXQT9A3Wy9MM3WgvqSxFWenqJduM=
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/digitorus/pdf v0.1.2 h1:RjYEJNbiV6Kcn8QzRi6pwHuOaSieUUrg4EZo4b7KuIQ=
-github.com/digitorus/pdf v0.1.2/go.mod h1:05fDDJhPswBRM7GTfqCxNiDyeNcN0f+IobfOAl5pdXw=
-github.com/digitorus/pdfsign v0.0.0-20260407063256-85ede6424a74 h1:MANiCuBLkFQNNVgIuGLU+mWxViMgaYCud1W2lZHmJvM=
-github.com/digitorus/pdfsign v0.0.0-20260407063256-85ede6424a74/go.mod h1:pNHrs2ezOb+shtypKo7bpK9acMy96Bhsp8Abeqd0Euo=
+github.com/digitorus/pdf v0.2.0 h1:VTH4wOsVqIcV3CHeh8kahHDtvPmlK3jjRMIGhLXn4K4=
+github.com/digitorus/pdf v0.2.0/go.mod h1:hAVtI9P/OwJ4Hk+xoxxpLfBL3KHFpEFfcKMAnv02F80=
+github.com/digitorus/pdfsign v1.0.0-rc1 h1:M8BcCs6gVffiQ+euUplv2CvPzKmneUkLxiYYJv+3JeY=
+github.com/digitorus/pdfsign v1.0.0-rc1/go.mod h1:QIYPgl/hqNBRjkENNuIppCnZ/ODfYN9nDd5oChRElTg=
 github.com/digitorus/pkcs7 v0.0.0-20230713084857-e76b763bdc49/go.mod h1:SKVExuS+vpu2l9IoOc0RwqE7NYnb0JlcFHFnEJkVDzc=
 github.com/digitorus/pkcs7 v0.0.0-20250730155240-ffadbf3f398c h1:g349iS+CtAvba7i0Ee9EP1TlTZ9w+UncBY6HSmsFZa0=
 github.com/digitorus/pkcs7 v0.0.0-20250730155240-ffadbf3f398c/go.mod h1:mCGGmWkOQvEuLdIRfPIpXViBfpWto4AhwtJlAvo62SQ=

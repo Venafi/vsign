@@ -212,7 +212,7 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/subosito/gotenv v1.6.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect
-	golang.org/x/text v0.40.0
+	golang.org/x/text v0.41.0
 	gopkg.in/ini.v1 v1.67.3
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	sigs.k8s.io/release-utils v0.12.4

@@ -11,7 +11,7 @@ require (
 	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/google/uuid v1.6.0
 	github.com/mattetti/filebuffer v1.0.1
-	github.com/rabbitmq/amqp091-go v1.13.0
+	github.com/rabbitmq/amqp091-go v1.14.0
 	github.com/sigstore/cosign/v3 v3.1.3
 	github.com/sigstore/sigstore v1.10.9
 	github.com/spf13/cobra v1.10.2

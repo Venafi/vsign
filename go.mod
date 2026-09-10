@@ -199,7 +199,7 @@ require (
 )
 
 require (
-	github.com/beevik/etree v1.7.1
+	github.com/beevik/etree v1.8.0
 	github.com/fsnotify/fsnotify v1.10.1 // indirect
 	github.com/google/go-containerregistry v0.22.1
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect

@@ -13,7 +13,7 @@ require (
 	github.com/google/go-containerregistry v0.22.1
 	github.com/google/uuid v1.6.0
 	github.com/mattetti/filebuffer v1.0.1
-	github.com/rabbitmq/amqp091-go v1.14.0
+	github.com/rabbitmq/amqp091-go v1.15.0
 	github.com/rs/zerolog v1.35.1
 	github.com/sassoftware/relic/v7 v7.6.2
 	github.com/sigstore/cosign/v3 v3.1.3

@@ -22,7 +22,7 @@ require (
 	github.com/spf13/pflag v1.0.10
 	github.com/spf13/viper v1.21.0
 	github.com/stretchr/testify v1.12.1
-	github.com/ulikunitz/xz v0.5.16
+	github.com/ulikunitz/xz v0.5.17
 	golang.org/x/crypto v0.57.0
 	golang.org/x/text v0.42.0
 	gopkg.in/ini.v1 v1.67.3

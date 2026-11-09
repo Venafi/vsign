@@ -35,10 +35,9 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-go-
     - name: Set correct version of Golang to use during CodeQL run
-      uses: actions/setup-go@v3.3.0
+      uses: actions/setup-go@v5
       with:
-        go-version: '1.22.5'
-        check-latest: true
+        go-version-file: go.mod
 
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL

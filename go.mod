@@ -25,7 +25,7 @@ require (
 	github.com/ulikunitz/xz v0.5.17
 	golang.org/x/crypto v0.58.0
 	golang.org/x/text v0.44.0
-	gopkg.in/ini.v1 v1.67.3
+	gopkg.in/ini.v1 v1.68.0
 	sigs.k8s.io/release-utils v0.12.5
 )
 
